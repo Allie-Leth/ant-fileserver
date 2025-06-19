@@ -1,0 +1,15 @@
+# --- DEV ---
+# Python
+*.py[cod]
+__pycache__/
+*.pyo
+*.pyd
+.Python
+env/
+.venv/
+
+
+# VsCode
+.vscode/
+.vscode-test/
+
