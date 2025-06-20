@@ -13,3 +13,6 @@ env/
 .vscode/
 .vscode-test/
 
+# Environment variables
+.env
+
