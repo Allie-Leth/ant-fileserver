@@ -1,0 +1,64 @@
+stages: [lint, test, integ, build, deploy]
+
+# 1) Lint
+lint:
+  image: python:3.12-slim
+  script: pip install ruff && ruff check .
+  stage: lint
+
+# 2) Unit tests (moto S3 stub)
+unit-test:
+  image: python:3.12-slim
+  script:
+    - pip install -r requirements.txt moto pytest
+    - pytest -m unit
+  stage: test
+  needs: [lint]
+
+# 3) *Optional* integration test with a MinIO sidecar
+integration-test:
+  image: python:3.12-slim
+  services:
+    - name: minio/minio:latest
+      alias: minio
+      command: ["server","/data"]
+  variables:
+    STORAGE_ENDPOINT: http://minio:9000
+    STORAGE_BUCKET:   firmware
+    STORAGE_ACCESS_KEY_ID:     minioadmin
+    STORAGE_SECRET_ACCESS_KEY: minioadmin
+  script:
+    - pip install -r requirements.txt pytest
+    - pytest -m integration
+  stage: integ
+  needs: [unit-test]
+
+# 4) Build & push
+build-image:
+  image: docker:24.0.10
+  services: [docker:24.0.10-dind]
+  variables: {DOCKER_TLS_CERTDIR: "" , IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA}
+  script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+    - docker build -t "$IMAGE_TAG" .
+    - docker push "$IMAGE_TAG"
+  stage: build
+  needs: [integration-test]
+
+# 5) Deploy to your k3s cluster (namespace "ant")
+deploy-dev:
+  image: bitnami/kubectl:1.29
+  variables: {KUBECONFIG: /kube/config}
+  script:
+    - echo "$KUBE_CONFIG_BASE64" | base64 -d > $KUBECONFIG
+    - kustomize build k8s/fileserver/overlays/dev \
+        | sed "s#IMAGE_PLACEHOLDER#$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA#g" \
+        | kubectl apply -f -
+    - kubectl -n ant rollout status deploy/ant-fileserver
+  environment:
+    name: dev
+    url: https://fileserver-dev.scopecreep.productions
+  stage: deploy
+  needs: [build-image]
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"

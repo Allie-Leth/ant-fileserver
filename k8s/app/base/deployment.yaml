@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ant-fileserver
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ant-fileserver
+  template:
+    metadata:
+      labels:
+        app: ant-fileserver
+    spec:
+      containers:
+        - name: ant-fileserver
+          image: IMAGE_PLACEHOLDER
+          ports:
+            - containerPort: 8000
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          envFrom:
+            - configMapRef:
+              name: ant-minio-config
+            - secretRef:
+              name: ant-minio-app-creds
+              
