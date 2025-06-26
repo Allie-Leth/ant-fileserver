@@ -1,11 +1,8 @@
-import importlib
 import json
 import boto3
 import pytest
 from datetime import datetime, timezone
 from moto import mock_aws
-from types import SimpleNamespace
-from flask_jwt_extended import create_access_token
 
 from app.blueprints.firmware.service import FirmwareService, FirmwareMetaData
 
