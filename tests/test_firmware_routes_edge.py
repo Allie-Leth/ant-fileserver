@@ -1,6 +1,4 @@
 import base64
-import pytest
-from botocore.exceptions import ClientError
 
 from app.errors import VersionNotFoundError, StorageError
 
