@@ -10,7 +10,6 @@ API_KEY = "dev-key"
 #  Auth
 # --------------------------------------------------------------------------- #
 
-@pytest.mark.api
 def test_login_and_access_token(client):
     res = client.post("/api/v1/auth/login", json={"api_key": API_KEY})
     assert res.status_code == 200
@@ -33,21 +32,17 @@ def jwt_headers(client):
 #  Routes
 # --------------------------------------------------------------------------- #
 
-@pytest.mark.api
 def test_firmware_list(client, jwt_headers):
     res = client.get("/api/v1/firmware/acme/widget", headers=jwt_headers)
     assert res.status_code == 200
     assert res.get_json()[0]["version"] == "1.0.0"
 
-
-@pytest.mark.api
 def test_latest_with_url(client, jwt_headers):
     res = client.get("/api/v1/firmware/acme/widget/latest", headers=jwt_headers)
     assert res.status_code == 200
     assert res.get_json()["download_url"].startswith("https://dummy")
 
 
-@pytest.mark.api
 def test_upload_requires_role(client):
     with client.application.app_context():
         bad_token = create_access_token(
@@ -67,9 +62,6 @@ def test_upload_requires_role(client):
     assert res.status_code == 403
 
 
-
-
-@pytest.mark.api
 def test_successful_upload(client):
     with client.application.app_context():
         up_token = create_access_token(
