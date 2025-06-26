@@ -11,7 +11,10 @@ from app.errors import (
     StorageError,
 )
 
-_b64 = lambda b: base64.b64encode(b).decode()
+# Helper: base64 encode a bytes object
+def _b64(payload: bytes) -> str:
+    return base64.b64encode(payload).decode()
+
 
 
 
@@ -77,11 +80,6 @@ def svc(monkeypatch):
     # overwrite the real boto client with our stub
     service.s3 = fake
     return service
-
-
-def _b64(payload: bytes) -> str:
-    return base64.b64encode(payload).decode()
-
 
 
 # Happy-path upload → list  → get_latest
