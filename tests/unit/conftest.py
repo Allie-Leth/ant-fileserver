@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 from datetime import datetime, timezone
 from moto import mock_aws
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 from app.blueprints.firmware.service import FirmwareService, FirmwareMetaData
 
 
