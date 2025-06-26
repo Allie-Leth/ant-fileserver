@@ -1,6 +1,8 @@
 import json
 import logging
-import base64, hashlib, datetime
+import base64
+import hashlib
+import datetime
 from typing import List, Optional
 
 import boto3
@@ -129,7 +131,6 @@ class FirmwareService:
         except (KeyError, ValueError) as e:
             raise ValueError(f"Invalid base64 firmware blob: {e}")
 
-        from app.errors import DuplicateVersionError, ChecksumMismatchError 
         
     
         supplied_checksum = payload.get("checksum")
