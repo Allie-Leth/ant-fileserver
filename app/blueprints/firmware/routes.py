@@ -9,7 +9,6 @@ from .schema import (
 )
 
 from app.models import FirmwareMetaData
-from app.errors import FirmwareError
 
 firmware_bp = Blueprint("firmware", __name__)
 
