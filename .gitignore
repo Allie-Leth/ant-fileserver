@@ -8,6 +8,9 @@ __pycache__/
 env/
 .venv/
 
+# lint
+ruff.toml
+.ruff_cache/
 
 # VsCode
 .vscode/
@@ -20,3 +23,6 @@ env/
 # Coverage reports
 .coverage
 coverage.*
+
+# testing
+.pytest_cache/
