@@ -1,4 +1,5 @@
-import os, pytest, json
+import pytest
+import json
 from app._env import get_config, ConfigurationError
 
 def test_get_config_success(monkeypatch):
