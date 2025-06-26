@@ -1,12 +1,12 @@
 stages: [lint, test, integ, build, deploy]
 
-# 1) Lint
+# Lint
 lint:
   image: python:3.12-slim
   script: pip install ruff && ruff check .
   stage: lint
 
-# 2) Unit tests (moto S3 stub)
+# Unit tests (moto S3 stub)
 unit-test:
   image: python:3.12-slim
   script:
@@ -15,7 +15,7 @@ unit-test:
   stage: test
   needs: [lint]
 
-# 3) *Optional* integration test with a MinIO sidecar
+# Integration test with a MinIO sidecar
 integration-test:
   image: python:3.12-slim
   services:
@@ -33,7 +33,7 @@ integration-test:
   stage: integ
   needs: [unit-test]
 
-# 4) Build & push
+# Build & push
 build-image:
   image: docker:24.0.10
   services: [docker:24.0.10-dind]
@@ -45,7 +45,7 @@ build-image:
   stage: build
   needs: [integration-test]
 
-# 5) Deploy to your k3s cluster (namespace "ant")
+# Deploy to your k3s cluster (namespace "ant")
 deploy-dev:
   image: bitnami/kubectl:1.29
   variables: {KUBECONFIG: /kube/config}
