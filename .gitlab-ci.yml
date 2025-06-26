@@ -1,64 +1,105 @@
-stages: [lint, test, integ, build, deploy]
-
+stages:
+  - lint
+  - unit
+  - api
+  - integration
+  - build
+  - deploy 
 # Lint
 lint:
-  image: python:3.12-slim
-  script: pip install ruff && ruff check .
   stage: lint
+  image: python:3.12-slim
+  script:
+    - pip install --no-cache-dir ruff
+    - ruff check .
+  artifacts:
+    expire_in: 1 week
+    when: always
+  allow_failure: false
 
 # Unit tests (moto S3 stub)
 unit-test:
+  stage: unit
   image: python:3.12-slim
+  variables:
+    PYTHONPATH: "$CI_PROJECT_DIR"
   script:
-    - pip install -r requirements.txt moto pytest
+    - pip install --no-cache-dir -r requirements.txt moto pytest
     - pytest tests/unit
-  stage: test
   needs: [lint]
 
-# Integration test with a MinIO sidecar
+
+
+#  API tests
+api-test:
+  stage: api
+  image: python:3.12-slim
+  variables:
+    PYTHONPATH: "$CI_PROJECT_DIR"
+    STORAGE_ENDPOINT:        http://dummy
+    STORAGE_BUCKET:          firmware
+    STORAGE_ACCESS_KEY_ID:   dummy
+    STORAGE_SECRET_ACCESS_KEY: dummy
+    STORAGE_REGION:          us-east-1
+  script:
+    - pip install --no-cache-dir -r requirements.txt pytest
+    - pytest tests/api
+  needs: [unit-test]
+
+# Integration test with MinIO
 integration-test:
+  stage: integration
   image: python:3.12-slim
   services:
     - name: minio/minio:latest
       alias: minio
-      command: ["server","/data"]
+      command: ["server","/data","--console-address",":9001"]
   variables:
-    STORAGE_ENDPOINT: http://minio:9000
-    STORAGE_BUCKET:   firmware
-    STORAGE_ACCESS_KEY_ID:     minioadmin
+    PYTHONPATH: "$CI_PROJECT_DIR"
+    STORAGE_ENDPOINT:        http://minio:9000
+    STORAGE_BUCKET:          firmware
+    STORAGE_ACCESS_KEY_ID:   minioadmin
     STORAGE_SECRET_ACCESS_KEY: minioadmin
+    STORAGE_REGION:          us-east-1
   script:
-    - pip install -r requirements.txt pytest
-    - pytest -m integration
-  stage: integ
-  needs: [unit-test]
+    - pip install --no-cache-dir -r requirements.txt boto3 pytest
+    - pytest tests/integration
+  needs: [api-test]
 
 # Build & push
 build-image:
-  image: docker:24.0.10
-  services: [docker:24.0.10-dind]
-  variables: {DOCKER_TLS_CERTDIR: "" , IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA}
+  stage: build
+  image: docker:24
+  services: [docker:24-dind]
+  variables:
+    DOCKER_TLS_CERTDIR: ""
+    IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
   script:
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
     - docker build -t "$IMAGE_TAG" .
     - docker push "$IMAGE_TAG"
-  stage: build
   needs: [integration-test]
 
-# Deploy to your k3s cluster (namespace "ant")
+# Kubernetes deployment
 deploy-dev:
+  stage: deploy
   image: bitnami/kubectl:1.29
-  variables: {KUBECONFIG: /kube/config}
+  variables:
+    KUBECONFIG: /kube/config
   script:
+    # set KUBECONFIG from masked/variable in project/group settings
     - echo "$KUBE_CONFIG_BASE64" | base64 -d > $KUBECONFIG
+
+    # render overlay with the freshly-built image
     - kustomize build k8s/fileserver/overlays/dev \
         | sed "s#IMAGE_PLACEHOLDER#$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA#g" \
         | kubectl apply -f -
+
+    # wait until rollout complete
     - kubectl -n ant rollout status deploy/ant-fileserver
   environment:
     name: dev
     url: https://fileserver-dev.scopecreep.productions
-  stage: deploy
-  needs: [build-image]
   rules:
-    - if: $CI_COMMIT_BRANCH == "main"
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  needs: [build-image]

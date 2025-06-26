@@ -2,16 +2,23 @@ import json
 import boto3
 import pytest
 import sys
+import os
 from pathlib import Path
 from datetime import datetime, timezone
 from moto import mock_aws
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from app.blueprints.firmware.service import FirmwareService, FirmwareMetaData
 
 
 _BUCKET = "firmware"
 
-
+@pytest.fixture(autouse=True, scope="session")
+def _minio_env():
+    os.environ.setdefault("STORAGE_ENDPOINT", "http://dummy")
+    os.environ.setdefault("STORAGE_BUCKET", "firmware")
+    os.environ.setdefault("STORAGE_ACCESS_KEY_ID", "x")
+    os.environ.setdefault("STORAGE_SECRET_ACCESS_KEY", "y")
+    os.environ.setdefault("STORAGE_REGION", "us-east-1")
 
 @pytest.fixture(scope="function")
 def svc():
