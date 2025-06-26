@@ -51,6 +51,10 @@ def create_app(config_name: str = "default") -> Flask:
         }
     })
     
+    app.config.update(
+        JWT_TOKEN_LOCATION=["headers", "json"],
+        JWT_JSON_KEY="access_token",
+    )
     # Extensions
     jwt.init_app(app)
     cors.init_app(app)

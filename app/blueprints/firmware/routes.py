@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt
 from marshmallow import ValidationError
+import dataclasses
 
 from .schema import (
     LatestFirmwareQuerySchema,
@@ -19,21 +20,22 @@ def list_all(project: str, device_type: str, svc):
     Returns a list of all firmware metadata (no download URLs).
     """
     # No query params, just list all versions
-    meta: list[FirmwareMetaData] = svc.list_firmware(project, device_type)
+    metas: list[FirmwareMetaData] = svc.list_firmware(project, device_type)
     
     # Optional ?with_urls=true to embed presigned links in every item
     if request.args.get("with_urls", "").lower() in {"1", "true", "yes"}:
-        for m in meta:
-            m.download_url = svc.generate_presigned_url(
-                project, device_type, m.version
+        metas = [
+            dataclasses.replace(
+                m,
+                download_url=svc.generate_presigned_url(
+                    project, device_type, m.version
+                ),
             )
-    # Attach a temporary download URL so clients can fetch right away
-    meta.download_url = svc.generate_presigned_url(
-        project, device_type, meta.version
-    )
+            for m in metas
+        ]
 
     # Serialize
-    result = FirmwareMetaDataSchema().dump(meta)
+    result = FirmwareMetaDataSchema(many=True).dump(metas)
     
     return jsonify(result), 200
 
@@ -51,6 +53,14 @@ def get_latest(project: str, device_type: str, svc):
         # Call Service
         meta: FirmwareMetaData = svc.get_latest(
             project, device_type, current_version=current
+        )
+        
+        # Add presigned URL (immutable object → create a copy)
+        meta = dataclasses.replace(
+            meta,
+            download_url=svc.generate_presigned_url(
+                project, device_type, meta.version
+            ),
         )
         
         # Serialize

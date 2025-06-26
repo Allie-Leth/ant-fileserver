@@ -32,13 +32,12 @@ class StorageError(FirmwareError):
 # Error Config
 
 _ERROR_HANDLING = {
-    DeviceNotFoundError: {"Code": 404, "tag": "device_not_found", "level": "info"},
+    DeviceNotFoundError:  {"Code": 404, "tag": "device_not_found",  "level": "info"},
     VersionNotFoundError: {"Code": 404, "tag": "version_not_found", "level": "info"},
-    StorageError: {"Code": 500, "tag": "storage_error", "level": "warning"},
-    FirmwareError: {"Code": 500, "tag": "firmware_error", "level": "info"},
-    StorageError:            {"status": 500, "tag": "storage_error", "level": "warning"},
-    DuplicateVersionError:   {"status": 409, "tag": "duplicate_version", "level": "info"},
-    ChecksumMismatchError:   {"status": 400, "tag": "checksum_mismatch", "level": "info"},
+    StorageError:         {"Code": 500, "tag": "storage_error",     "level": "warning"},
+    DuplicateVersionError:{"Code": 409, "tag": "duplicate_version", "level": "info"},
+    ChecksumMismatchError:{"Code": 400, "tag": "checksum_mismatch", "level": "info"},
+    FirmwareError:        {"Code": 500, "tag": "firmware_error",    "level": "info"},
 }
 
 def register_error_handlers(app):

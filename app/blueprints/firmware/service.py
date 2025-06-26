@@ -8,6 +8,12 @@ import semver
 from botocore.config import Config
 from botocore.exceptions import ClientError
 
+from app.errors import (
+    DuplicateVersionError,
+    ChecksumMismatchError,
+    StorageError,
+)
+
 from app.models import FirmwareMetaData
 
 logger = logging.getLogger(__name__)
@@ -61,7 +67,7 @@ class FirmwareService:
             pages = paginator.paginate(Bucket=self.bucket, Prefix=key_prefix)
             
         except ClientError as e:
-            raise RuntimeError(f"Failed to list objects for {project}/{device_type}: {e}")
+            raise StorageError(f"Failed to list objects for {project}/{device_type}: {e}")
             
         metas: List[FirmwareMetaData] = []
         for page in pages:
@@ -141,13 +147,6 @@ class FirmwareService:
         bin_key  = f"{self.prefix}/{project}/{device_type}/{version}/firmware.bin"
         meta_key = f"{self.prefix}/{project}/{device_type}/{version}/metadata.json"
 
-        self.s3.put_object(
-            Bucket=self.bucket,
-            Key=bin_key,
-            Body=raw_bytes,
-            ContentType="application/octet-stream",
-        )
-
         # ── Assemble metadata ------------------------------------------ #
         meta: dict = {
             "project"  : project,
@@ -159,8 +158,8 @@ class FirmwareService:
             "release_date" : payload.get(
                 "release_date",
                 datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc)
-                                           .isoformat()
-                                           .replace("+00:00", "Z")
+                                        .isoformat()
+                                        .replace("+00:00", "Z")
             ),
             "channel"       : payload.get("channel", "stable"),
             "mandatory"     : bool(payload.get("mandatory", False)),
@@ -170,14 +169,29 @@ class FirmwareService:
             "extra"         : payload.get("extra"),
         }
 
-        self.s3.put_object(
-            Bucket=self.bucket,
-            Key=meta_key,
-            Body=json.dumps(meta).encode("utf-8"),
-            ContentType="application/json",
-        )
 
-        logger.info("Uploaded firmware %s for %s/%s", version, project, device_type)
+        try:
+            self.s3.put_object(
+                Bucket=self.bucket,
+                Key=bin_key,
+                Body=raw_bytes,
+                ContentType="application/octet-stream",
+            )
+
+            self.s3.put_object(
+                Bucket=self.bucket,
+                Key=meta_key,
+                Body=json.dumps(meta).encode("utf-8"),
+                ContentType="application/json",
+            )
+
+            logger.info("Uploaded firmware %s for %s/%s", version, project, device_type)
+            
+        except ClientError as err:
+            # Convert AWS-specific error → domain-level error
+            raise StorageError(
+                f"S3 write failed for {project}/{device_type} {version}: {err}"
+            ) from err
                 
     def get_latest(
         self,
@@ -220,4 +234,4 @@ class FirmwareService:
                 ExpiresIn=expires_in,
             )
         except ClientError as e:
-            raise RuntimeError(f"Failed to generate presigned URL for {key}: {e}")
+            raise StorageError(f"Failed to generate presigned URL for {key}: {e}")

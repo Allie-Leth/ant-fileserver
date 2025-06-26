@@ -16,3 +16,6 @@ env/
 # Environment variables
 .env
 
+# Coverage reports
+.coverage
+coverage.*

@@ -1,6 +1,6 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import pytest
-import semver
+
 
 from app.models import FirmwareMetaData
 
@@ -47,3 +47,23 @@ def test_metadata_version_validation():
             release_date=datetime.now(timezone.utc),
             metadata_version=99,          # unsupported
         )
+
+def test_from_dict_parses_offset_date():
+    """
+    release_date without trailing 'Z' should be parsed by the fallback
+    branch (line 53).  We use an explicit UTC+02:00 offset to be sure.
+    """
+    data = {
+        "project":      "acme",
+        "device_type":  "widget",
+        "version":      "3.3.3",
+        "checksum":     "abc",
+        "file_size":    999,
+        "release_date": "2025-06-01T12:00:00+02:00",   # ← no 'Z'
+    }
+
+    meta = FirmwareMetaData.from_dict(data)
+
+    expected_dt = datetime(2025, 6, 1, 12, 0, 0,
+                           tzinfo=timezone(timedelta(hours=2)))
+    assert meta.release_date == expected_dt
