@@ -1,14 +1,11 @@
 import json
 import boto3
 import pytest
-import sys
-from pathlib import Path
 from datetime import datetime, timezone
 from moto import mock_aws
 
 from app.blueprints.firmware.service import FirmwareService, FirmwareMetaData
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 _BUCKET = "firmware"
 
 
