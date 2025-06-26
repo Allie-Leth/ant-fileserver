@@ -1,6 +1,5 @@
 import json
-from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Dict, Any
 from ._env import get_config
 
 class ConfigurationError(Exception):
