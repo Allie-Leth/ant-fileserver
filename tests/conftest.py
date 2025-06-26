@@ -70,7 +70,6 @@ def fake_service(monkeypatch):
             ]
 
         def get_latest(self, project, device_type, current_version=None):
-            versions = self._store[(project, device_type)]
             return self.list_firmware(project, device_type)[-1]
 
         def generate_presigned_url(self, project, device_type, version, **_):
