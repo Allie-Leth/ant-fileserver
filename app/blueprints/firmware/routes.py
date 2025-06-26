@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt
 from marshmallow import ValidationError
 
 from .schema import (
@@ -18,9 +19,22 @@ def list_all(project: str, device_type: str, svc):
     Returns a list of all firmware metadata (no download URLs).
     """
     # No query params, just list all versions
-    metas: list[FirmwareMetaData] = svc.list_firmware(project, device_type)
-    # Dump many= True to serialize a list
-    result = FirmwareMetaDataSchema(many=True).dump(metas)
+    meta: list[FirmwareMetaData] = svc.list_firmware(project, device_type)
+    
+    # Optional ?with_urls=true to embed presigned links in every item
+    if request.args.get("with_urls", "").lower() in {"1", "true", "yes"}:
+        for m in meta:
+            m.download_url = svc.generate_presigned_url(
+                project, device_type, m.version
+            )
+    # Attach a temporary download URL so clients can fetch right away
+    meta.download_url = svc.generate_presigned_url(
+        project, device_type, meta.version
+    )
+
+    # Serialize
+    result = FirmwareMetaDataSchema().dump(meta)
+    
     return jsonify(result), 200
 
 @firmware_bp.route("/<project>/<device_type>/latest", methods=["GET"])
@@ -45,3 +59,19 @@ def get_latest(project: str, device_type: str, svc):
     
     except ValidationError as ve:
         return jsonify({"error": "validation_error", "message": str(ve)}), 400
+    
+@firmware_bp.post("/<project>/<device_type>/upload")
+@jwt_required()
+def upload(project: str, device_type: str, svc):
+    """
+    POST /api/v1/firmware/<project>/<device_type>/upload
+    Body: JSON described in FirmwareService.upload_firmware().
+    Requires 'uploader' role.
+    """
+    identity = get_jwt()
+    if "uploader" not in identity["roles"]:
+        return jsonify({"error": "forbidden"}), 403
+
+    payload = request.get_json(force=True, silent=True) or {}
+    svc.upload_firmware(project, device_type, payload)
+    return "", 204

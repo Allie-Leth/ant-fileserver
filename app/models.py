@@ -15,8 +15,9 @@ class FirmwareMetaData:
     file_size: int
 
     # Release Info 
-    release_notes: str
     release_date: datetime
+    release_notes: str = ""
+
     
     # Defaults 
 
@@ -26,7 +27,16 @@ class FirmwareMetaData:
     mandatory: bool = False 
     signature: Optional[str] = None
     min_bootloader: Optional[str] = None
-    metadata_version: int = 1
+    metadata_version: int = field(default=1)
+    
+    # run-time validation hook
+    def __post_init__(self):
+        allowed = {1}
+        if self.metadata_version not in allowed:
+            raise ValueError(
+                f"metadata_version {self.metadata_version!r} not supported; "
+                f"allowed: {sorted(allowed)}"
+            )
     extra: Optional[Dict[str, Any]] = None
     
     @classmethod
@@ -37,20 +47,22 @@ class FirmwareMetaData:
         """
         dt_str = data["release_date"]
         if dt_str.endswith("Z"):
-            dt = datetime.fromisoformat(dt_str[:-1].replace(tzinfo=timezone.utc))
+            # Strip the 'Z', parse, then attach UTC tzinfo
+            dt = datetime.fromisoformat(dt_str[:-1]).replace(tzinfo=timezone.utc)
         else:
             dt = datetime.fromisoformat(dt_str)
-            
+
         return cls(
             project          = data["project"],
             device_type      = data["device_type"],
             version          = data["version"],
             checksum         = data["checksum"],
             file_size        = data["file_size"],
-            release_notes    = data["release_notes"],
             release_date     = dt,
-            checksum_algo    = data.get("checksum_algo", "sha256"),
             download_url     = None,
+            release_notes    = data.get("release_notes", ""),
+            checksum_algo    = data.get("checksum_algo", "sha256"),
+
             channel          = data.get("channel", "stable"),
             mandatory        = data.get("mandatory", False),
             signature        = data.get("signature"),
@@ -66,7 +78,11 @@ class FirmwareMetaData:
         """
         result = asdict(self)
         # Convert datetime to ISO 8601 Z
-        result["relase_date"] = self.release_date.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+        result["release_date"] = (
+            self.release_date.astimezone(timezone.utc)
+            .isoformat()
+            .replace("+00:00", "Z")
+        )
         if not include_url:
             result.pop("download_url", None)
         return result

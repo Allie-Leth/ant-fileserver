@@ -1,8 +1,8 @@
 from flask import Blueprint, jsonify, request, current_app
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from app.extensions import jwt
 
 auth_bp = Blueprint("auth", __name__)
-jwt = JWTManager()
 
 @auth_bp.route("/login", methods=["POST"])
 def login():
@@ -43,21 +43,3 @@ def whoami():
     Returns the decoded JWT identity payload.
     """
     return jsonify(get_jwt_identity()), 200
-
-
-@auth_bp.route("/<project>/<device_type>/upload", methods=["POST"])
-@jwt_required()
-def upload_firmware(project: str, device_type: str, svc):
-    """
-    POST /api/v1/auth/<project>/<device_type>/upload
-    Protected endpoint for pushing new firmware.
-    Requires the caller’s JWT identity to include the "uploader" role.
-    """
-    identity = get_jwt_identity()
-    if "uploader" not in identity.get("roles", []):
-        return jsonify({"error": "forbidden"}), 403
-
-    # Delegate to server layer
-    data = request.get_json(force=True)
-    svc.upload_firmware(project, device_type, data)
-    return "", 204

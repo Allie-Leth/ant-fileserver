@@ -66,8 +66,10 @@ def create_app(config_name: str = "default") -> Flask:
     )
     
     # Register Blueprints
-    app.register_blueprint(auth_bp, url_prefix="/api/v1/auth")
-    app.register_blueprint(firmware_bp, url_prefix="/api/v1/firmware", defaults={"svc": svc})
+    app.register_blueprint(auth_bp,     url_prefix="/api/v1/auth",
+                           defaults={"svc": svc})
+    app.register_blueprint(firmware_bp, url_prefix="/api/v1/firmware",
+                           defaults={"svc": svc})
     
     # Error Handlers
     register_error_handlers(app)

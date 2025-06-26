@@ -17,10 +17,10 @@ class BaseConfig:
         "STORAGE_SECRET_ACCESS_KEY":("STORAGE_SECRET_ACCESS_KEY", None,                          True,  False),
         "JWT_SECRET_KEY":         ("JWT_SECRET_KEY",         None,                               True,  False),
         "API_KEY_ROLES":          ("API_KEY_ROLES",          '{"dev-key":["admin","uploader"]}', False, True),
-        "LOG_LEVEL":              ("LOG_LEVEL",              None,                               False, False),
+        "LOG_LEVEL":              ("LOG_LEVEL",              "INFO",                               False, False),
         "DEBUG":                  ("DEBUG",                  "False",                            False, False),
     }
-    
+
     @classmethod
     def init_app(cls, app):
         """
@@ -42,23 +42,22 @@ class BaseConfig:
 
             app.config[conf_key] = val
         
-            app.logger.info(
-                "[Config %s] endpoint=%r bucket=%r API-keys=%d debug=%s",
-                cls.__name__,
-                app.config["STORAGE_ENDPOINT"],
-                app.config["STORAGE_BUCKET"],
-                len(app.config["API_KEY_ROLES"]),
-                app.config["DEBUG"],
+        app.logger.info(
+            "[Config %s] endpoint=%r bucket=%r API-keys=%d debug=%s",
+            cls.__name__,
+            app.config["STORAGE_ENDPOINT"],
+            app.config["STORAGE_BUCKET"],
+            len(app.config["API_KEY_ROLES"]),
+            app.config["DEBUG"],
             )
 
 
-        
 class DevelopmentConfig(BaseConfig):
     pass
-    
+
 class ProductionConfig(BaseConfig):
     pass
-    
+
 config_map: Dict[str, type[BaseConfig]] = {
     "development": DevelopmentConfig,
     "production": ProductionConfig,

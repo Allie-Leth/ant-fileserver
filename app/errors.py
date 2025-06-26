@@ -13,6 +13,12 @@ class FirmwareError(Exception):
 class DeviceNotFoundError(FirmwareError):
     """Raised when a device is not found."""
     pass
+
+class DuplicateVersionError(FirmwareError):
+    """Attempted to upload a version that already exists."""
+
+class ChecksumMismatchError(FirmwareError):
+    """Provided checksum does not match calculated value."""
         
 class VersionNotFoundError(FirmwareError):
     """Raised when a specific firmware version is not found."""
@@ -30,6 +36,9 @@ _ERROR_HANDLING = {
     VersionNotFoundError: {"Code": 404, "tag": "version_not_found", "level": "info"},
     StorageError: {"Code": 500, "tag": "storage_error", "level": "warning"},
     FirmwareError: {"Code": 500, "tag": "firmware_error", "level": "info"},
+    StorageError:            {"status": 500, "tag": "storage_error", "level": "warning"},
+    DuplicateVersionError:   {"status": 409, "tag": "duplicate_version", "level": "info"},
+    ChecksumMismatchError:   {"status": 400, "tag": "checksum_mismatch", "level": "info"},
 }
 
 def register_error_handlers(app):
@@ -49,7 +58,7 @@ def register_error_handlers(app):
         app.register_error_handler(exc_cls, _make_handler(opts))
         
         
-    @app.errorHandler(Exception)
+    @app.errorhandler(Exception)
     def handle_unexpected_error(exc):
         code = exc.code if isinstance(exc, HTTPException) else 500
         msg = str(exc) if app.config.get("DEBUG") else "Internal Server Error"

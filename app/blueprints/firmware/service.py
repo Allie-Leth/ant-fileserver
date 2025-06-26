@@ -1,5 +1,6 @@
 import json
 import logging
+import base64, hashlib, datetime
 from typing import List, Optional
 
 import boto3
@@ -74,7 +75,11 @@ class FirmwareService:
                         .read()
                         .decode("utf-8")
                     )
-                except (ClientError, json.JSONDecodeError) as e:
+                    # Parse JSON → dataclass and store
+                    meta_dict = json.loads(body)
+                    metas.append(FirmwareMetaData.from_dict(meta_dict))
+                    
+                except (ClientError, json.JSONDecodeError, KeyError) as e:
                     logger.warning(
                         "Skipping metadata at %r (project=%s, device_type=%s): %s",
                         key, project, device_type, e
@@ -83,6 +88,96 @@ class FirmwareService:
                     
         metas.sort(key=lambda m: semver.VersionInfo.parse(m.version))
         return metas
+    
+ 
+
+    #  UPLOAD  (new)
+
+    def upload_firmware(
+        self,
+        project: str,
+        device_type: str,
+        payload: dict,
+    ) -> None:
+        """
+        Persist a new firmware binary + metadata.json.
+
+        Expected JSON payload:
+        {
+            "version"      : "1.2.3",
+            "firmware_b64" : "<base-64-encoded binary>",
+            "checksum"     : "<hex sha256>",      # optional; auto-filled if absent
+            "release_notes": "...",               # optional
+            ... any extra firmware-meta fields ...
+        }
+        """
+        # ── Validate ---------------------------------------------------- #
+        try:
+            version = payload["version"]
+            semver.VersionInfo.parse(version)                # raises if bad
+        except (KeyError, ValueError) as e:
+            raise ValueError(f"Invalid or missing version: {e}")
+
+        try:
+            raw_bytes = base64.b64decode(payload["firmware_b64"])
+        except (KeyError, ValueError) as e:
+            raise ValueError(f"Invalid base64 firmware blob: {e}")
+
+        from app.errors import DuplicateVersionError, ChecksumMismatchError 
+        
+    
+        supplied_checksum = payload.get("checksum")
+        calc_checksum = hashlib.sha256(raw_bytes).hexdigest()
+        if supplied_checksum and supplied_checksum != calc_checksum:
+            raise ChecksumMismatchError(
+                f"Expected {supplied_checksum}, got {calc_checksum}"
+            )
+            
+        # ── Version already exists?  ----------------------------------- #
+        if any(r.version == version for r in self.list_firmware(project, device_type)):
+            raise DuplicateVersionError(version)
+            
+        # ── Upload binary ---------------------------------------------- #
+        bin_key  = f"{self.prefix}/{project}/{device_type}/{version}/firmware.bin"
+        meta_key = f"{self.prefix}/{project}/{device_type}/{version}/metadata.json"
+
+        self.s3.put_object(
+            Bucket=self.bucket,
+            Key=bin_key,
+            Body=raw_bytes,
+            ContentType="application/octet-stream",
+        )
+
+        # ── Assemble metadata ------------------------------------------ #
+        meta: dict = {
+            "project"  : project,
+            "device_type": device_type,
+            "version"  : version,
+            "checksum" : calc_checksum,
+            "file_size": len(raw_bytes),
+            "release_notes": payload.get("release_notes", ""),
+            "release_date" : payload.get(
+                "release_date",
+                datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc)
+                                           .isoformat()
+                                           .replace("+00:00", "Z")
+            ),
+            "channel"       : payload.get("channel", "stable"),
+            "mandatory"     : bool(payload.get("mandatory", False)),
+            "signature"     : payload.get("signature"),
+            "min_bootloader": payload.get("min_bootloader"),
+            "metadata_version": int(payload.get("metadata_version", 1)),
+            "extra"         : payload.get("extra"),
+        }
+
+        self.s3.put_object(
+            Bucket=self.bucket,
+            Key=meta_key,
+            Body=json.dumps(meta).encode("utf-8"),
+            ContentType="application/json",
+        )
+
+        logger.info("Uploaded firmware %s for %s/%s", version, project, device_type)
                 
     def get_latest(
         self,
