@@ -1,4 +1,5 @@
-import base64, pytest
+import base64
+import pytest
 
 @pytest.mark.integration
 def test_upload_and_latest(live_service):
