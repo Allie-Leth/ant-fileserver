@@ -5,7 +5,6 @@ import pytest
 from app.models import FirmwareMetaData
 
 
-@pytest.mark.unit
 def test_from_dict_parses_dates_and_defaults():
     data = {
         "project": "acme",
@@ -21,7 +20,7 @@ def test_from_dict_parses_dates_and_defaults():
     assert meta.channel == "stable"          # default value present
     assert meta.version == "1.2.3"
 
-@pytest.mark.unit
+
 def test_to_dict_roundtrip():
     meta = FirmwareMetaData(
         project="acme",
@@ -35,7 +34,7 @@ def test_to_dict_roundtrip():
     assert d["version"] == "2.0.0"
     assert "download_url" not in d
 
-@pytest.mark.unit
+
 def test_metadata_version_validation():
     with pytest.raises(ValueError):
         FirmwareMetaData(
