@@ -1,20 +1,13 @@
 import os
 import pytest
 import boto3
+from botocore.exceptions import ClientError 
 from app import create_app
 from app.blueprints.firmware.service import FirmwareService
 
+# ---------- S3 client ----------
 @pytest.fixture(scope="session")
-def minio_env():
-    # Values come from CI job; we just assert they're present
-    required = ["STORAGE_ENDPOINT", "STORAGE_BUCKET",
-                "STORAGE_ACCESS_KEY_ID", "STORAGE_SECRET_ACCESS_KEY"]
-    missing = [k for k in required if not os.getenv(k)]
-    if missing:
-        raise RuntimeError(f"CI didn’t set: {', '.join(missing)}")
-
-@pytest.fixture(scope="session")
-def s3(minio_env):
+def s3():
     return boto3.client(
         "s3",
         endpoint_url=os.environ["STORAGE_ENDPOINT"],
@@ -23,6 +16,17 @@ def s3(minio_env):
         region_name=os.getenv("STORAGE_REGION", "us-east-1"),
     )
 
+# ---------- Make sure bucket exists ----------
+@pytest.fixture(scope="session", autouse=True)
+def ensure_bucket(s3):
+    bucket = os.environ["STORAGE_BUCKET"]
+    try:
+        s3.head_bucket(Bucket=bucket)
+    except ClientError:
+        # create once; OK if it already exists
+        s3.create_bucket(Bucket=bucket)
+
+# ---------- Live service ----------
 @pytest.fixture(scope="session")
 def live_service():
     return FirmwareService(
@@ -33,10 +37,10 @@ def live_service():
         region=os.getenv("STORAGE_REGION", "us-east-1"),
     )
 
+# ---------- Live Flask app (for future API E2E tests) ----------
 @pytest.fixture(scope="session")
 def live_app():
-    # Use the actual env-vars (no moto)
-    return create_app("production")   # config object doesn’t matter; env wins
+    return create_app("production")
 
 @pytest.fixture()
 def client(live_app):
