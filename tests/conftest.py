@@ -13,7 +13,8 @@ from app.blueprints.firmware.service import FirmwareService, FirmwareMetaData
 _BUCKET = "firmware"
 
 @pytest.fixture(autouse=True, scope="session")
-def _minio_env():
+def _dummy_app_env():
+    os.environ.setdefault("JWT_SECRET_KEY", "test-secret")
     os.environ.setdefault("STORAGE_ENDPOINT", "http://dummy")
     os.environ.setdefault("STORAGE_BUCKET", "firmware")
     os.environ.setdefault("STORAGE_ACCESS_KEY_ID", "x")
