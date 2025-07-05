@@ -1,11 +1,22 @@
+########################################
+#      GLOBAL CONFIG & VARIABLES
+########################################
 stages:
   - lint
   - unit
   - api
   - integration
   - build
-  - deploy 
-# Lint
+  - deploy
+
+variables:
+  # Point all build/push/pull to the cluster-internal registry Service
+  INTERNAL_REGISTRY: gitlab-registry.gitlab.svc.cluster.local:5000
+  INTERNAL_IMAGE: $INTERNAL_REGISTRY/$CI_PROJECT_PATH
+
+########################################
+#            LINT STAGE
+########################################
 lint:
   stage: lint
   image: python:3.12-slim
@@ -15,9 +26,10 @@ lint:
   artifacts:
     expire_in: 1 week
     when: always
-  allow_failure: false
 
-# Unit tests (moto S3 stub)
+########################################
+#            UNIT TESTS
+########################################
 unit-test:
   stage: unit
   image: python:3.12-slim
@@ -28,25 +40,27 @@ unit-test:
     - pytest tests/unit
   needs: [lint]
 
-
-
-#  API tests
+########################################
+#              API TESTS
+########################################
 api-test:
   stage: api
   image: python:3.12-slim
   variables:
     PYTHONPATH: "$CI_PROJECT_DIR"
-    STORAGE_ENDPOINT:        http://dummy
-    STORAGE_BUCKET:          firmware
-    STORAGE_ACCESS_KEY_ID:   dummy
+    STORAGE_ENDPOINT: http://dummy
+    STORAGE_BUCKET: firmware
+    STORAGE_ACCESS_KEY_ID: dummy
     STORAGE_SECRET_ACCESS_KEY: dummy
-    STORAGE_REGION:          us-east-1
+    STORAGE_REGION: us-east-1
   script:
     - pip install --no-cache-dir -r requirements.txt pytest
     - pytest tests/api
   needs: [unit-test]
 
-# Integration test with MinIO
+########################################
+#        INTEGRATION TESTS (MinIO)
+########################################
 integration-test:
   stage: integration
   image: python:3.12-slim
@@ -56,48 +70,55 @@ integration-test:
       command: ["server","/data","--console-address",":9001"]
   variables:
     PYTHONPATH: "$CI_PROJECT_DIR"
-    STORAGE_ENDPOINT:        http://minio:9000
-    STORAGE_BUCKET:          firmware
-    STORAGE_ACCESS_KEY_ID:   minioadmin
+    STORAGE_ENDPOINT: http://minio:9000
+    STORAGE_BUCKET: firmware
+    STORAGE_ACCESS_KEY_ID: minioadmin
     STORAGE_SECRET_ACCESS_KEY: minioadmin
-    STORAGE_REGION:          us-east-1
+    STORAGE_REGION: us-east-1
   script:
     - pip install --no-cache-dir -r requirements.txt boto3 pytest
     - pytest tests/integration
   needs: [api-test]
 
-# Build & push
+########################################
+#        BUILD & PUSH IMAGE
+########################################
 build-image:
   stage: build
-  image: docker:24
-  services:
-    - docker:24-dind
+  image: quay.io/containers/podman:5.2         # podman + buildah + skopeo
   variables:
-    DOCKER_TLS_CERTDIR: ""        # disable TLS in DinD
-    IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
-  before_script:
-    - echo "$CI_JOB_TOKEN" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+    BUILDAH_ISOLATION: chroot
+    STORAGE_DRIVER: vfs
   script:
-    - docker build -t "$IMAGE_TAG" .
-    - docker push "$IMAGE_TAG"
+    # 1) login to internal registry (HTTP)
+    - podman login --tls-verify=false \
+        -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" \
+        "$INTERNAL_REGISTRY"
+
+    # 2) build
+    - podman build --pull \
+        -t "$INTERNAL_IMAGE:$CI_COMMIT_SHA" .
+
+    # 3) push
+    - podman push --tls-verify=false "$INTERNAL_IMAGE:$CI_COMMIT_SHA"
   needs: [integration-test]
 
-# Kubernetes deployment
+########################################
+#            DEPLOY (DEV)
+########################################
 deploy-dev:
   stage: deploy
   image: bitnami/kubectl:1.29
   variables:
     KUBECONFIG: /kube/config
   script:
-    # set KUBECONFIG from masked/variable in project/group settings
-    - echo "$KUBE_CONFIG_BASE64" | base64 -d > $KUBECONFIG
+    - echo "$KUBE_CONFIG_BASE64" | base64 -d > "$KUBECONFIG"
 
-    # render overlay with the freshly-built image
+    # render overlay with fresh image
     - kustomize build k8s/fileserver/overlays/dev \
-        | sed "s#IMAGE_PLACEHOLDER#$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA#g" \
+        | sed "s#IMAGE_PLACEHOLDER#$INTERNAL_IMAGE:$CI_COMMIT_SHA#g" \
         | kubectl apply -f -
 
-    # wait until rollout complete
     - kubectl -n ant rollout status deploy/ant-fileserver
   environment:
     name: dev
