@@ -15,17 +15,14 @@ variables:
 
 default:
   image: python:3.12-slim
+
+.test_base: &test_base
   before_script:
-    # install common test deps
-    - pip install --no-cache-dir -r requirements.txt
+    - pip install --no-cache-dir -r requirements-dev.txt
   artifacts:
     expire_in: 1 week
     when: always
 
-.test_base: &test_base
-  image: python:3.12-slim
-  before_script:
-    - pip install --no-cache-dir -r requirements.txt moto pytest
 
 ########################################
 #     TEMPLATE FOR PRODUCTION JOBS
@@ -41,9 +38,9 @@ default:
 #            LINT STAGE
 ########################################
 lint:
+  <<: *test_base
   stage: lint
   script:
-    - pip install --no-cache-dir ruff
     - ruff check .
 
 ########################################
@@ -81,7 +78,6 @@ api-test:
 integration-test:
   <<: *test_base
   stage: integration
-  image: python:3.12-slim
   services:
     - name: minio/minio:latest
       alias: minio
