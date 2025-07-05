@@ -22,6 +22,11 @@ default:
     expire_in: 1 week
     when: always
 
+.test_base: &test_base
+  image: python:3.12-slim
+  before_script:
+    - pip install --no-cache-dir -r requirements.txt moto pytest
+
 ########################################
 #     TEMPLATE FOR PRODUCTION JOBS
 ########################################
@@ -45,11 +50,11 @@ lint:
 #            UNIT TESTS
 ########################################
 unit-test:
+  <<: *test_base
   stage: unit
   variables:
     PYTHONPATH: "$CI_PROJECT_DIR"
   script:
-    - pip install --no-cache-dir moto pytest
     - pytest tests/unit
   needs: [lint]
 
@@ -57,6 +62,7 @@ unit-test:
 #              API TESTS
 ########################################
 api-test:
+  <<: *test_base
   stage: api
   variables:
     PYTHONPATH: "$CI_PROJECT_DIR"
@@ -73,6 +79,7 @@ api-test:
 #        INTEGRATION TESTS (MinIO)
 ########################################
 integration-test:
+  <<: *test_base
   stage: integration
   image: python:3.12-slim
   services:
@@ -86,9 +93,6 @@ integration-test:
     STORAGE_ACCESS_KEY_ID: minioadmin
     STORAGE_SECRET_ACCESS_KEY: minioadmin
     STORAGE_REGION: us-east-1
-  before_script:
-    # add moto here
-    - pip install --no-cache-dir -r requirements.txt boto3 moto pytest
   script:
     - pytest tests/integration
   needs: [api-test]
