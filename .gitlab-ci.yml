@@ -85,20 +85,15 @@ integration-test:
 ########################################
 build-image:
   stage: build
-  image: quay.io/containers/podman:5.2         # podman + buildah + skopeo
+  image: quay.io/containers/podman:5.2
   variables:
     BUILDAH_ISOLATION: chroot
     STORAGE_DRIVER: vfs
   script:
-    # 1) login to internal registry (HTTP)
     - podman login --tls-verify=false \
         -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" \
         "$INTERNAL_REGISTRY"
-
-    # 2) build
     - podman build --pull \
         -t "$INTERNAL_IMAGE:$CI_COMMIT_SHA" .
-
-    # 3) push
     - podman push --tls-verify=false "$INTERNAL_IMAGE:$CI_COMMIT_SHA"
   needs: [integration-test]
