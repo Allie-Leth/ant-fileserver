@@ -17,7 +17,7 @@ def test_from_dict_parses_dates_and_defaults():
     meta = FirmwareMetaData.from_dict(data)
 
     assert meta.release_date == datetime(2025, 1, 2, 3, 4, 5, tzinfo=timezone.utc)
-    assert meta.channel == "stable"          # default value present
+    assert meta.channel == "stable"  # default value present
     assert meta.version == "1.2.3"
 
 
@@ -44,8 +44,9 @@ def test_metadata_version_validation():
             checksum="x",
             file_size=1,
             release_date=datetime.now(timezone.utc),
-            metadata_version=99,          # unsupported
+            metadata_version=99,  # unsupported
         )
+
 
 def test_from_dict_parses_offset_date():
     """
@@ -53,16 +54,15 @@ def test_from_dict_parses_offset_date():
     branch (line 53).  We use an explicit UTC+02:00 offset to be sure.
     """
     data = {
-        "project":      "acme",
-        "device_type":  "widget",
-        "version":      "3.3.3",
-        "checksum":     "abc",
-        "file_size":    999,
-        "release_date": "2025-06-01T12:00:00+02:00",   # ← no 'Z'
+        "project": "acme",
+        "device_type": "widget",
+        "version": "3.3.3",
+        "checksum": "abc",
+        "file_size": 999,
+        "release_date": "2025-06-01T12:00:00+02:00",  # ← no 'Z'
     }
 
     meta = FirmwareMetaData.from_dict(data)
 
-    expected_dt = datetime(2025, 6, 1, 12, 0, 0,
-                           tzinfo=timezone(timedelta(hours=2)))
+    expected_dt = datetime(2025, 6, 1, 12, 0, 0, tzinfo=timezone(timedelta(hours=2)))
     assert meta.release_date == expected_dt

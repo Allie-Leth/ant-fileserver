@@ -5,6 +5,8 @@ from app.blueprints.firmware.schema import (
     validate_semver,
     LatestFirmwareQuerySchema,
 )
+
+
 def test_validate_semver_bad():
     with pytest.raises(ValidationError):
         validate_semver("not-a-version")

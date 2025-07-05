@@ -28,7 +28,7 @@ def test_get_latest_with_current_returns_next(svc):
 
 def test_upload_duplicate_version_guard(svc):
     payload = {
-        "version": "2.0.0",            # already exists
+        "version": "2.0.0",  # already exists
         "firmware_b64": base64.b64encode(b"x").decode(),
     }
     with pytest.raises(DuplicateVersionError):
@@ -39,11 +39,10 @@ def test_upload_checksum_mismatch(svc):
     payload = {
         "version": "3.0.0",
         "firmware_b64": base64.b64encode(b"x").decode(),
-        "checksum": "bogus",           # wrong
+        "checksum": "bogus",  # wrong
     }
     with pytest.raises(ChecksumMismatchError):
         svc.upload_firmware("acme", "widget", payload)
-
 
 
 def test_successful_upload_then_latest(svc):
@@ -67,9 +66,7 @@ def test_presigned_url_shape(svc):
     parsed = urlparse(url)
 
     # Path-style or virtual-hosted both end with the key string.
-    assert parsed.path.endswith(
-        "/releases/acme/widget/1.0.0/firmware.bin"
-    )
+    assert parsed.path.endswith("/releases/acme/widget/1.0.0/firmware.bin")
 
     # Expiration is expressed either as Expires (SigV2) or X-Amz-Expires (SigV4)
     assert "Expires=123" in parsed.query or "X-Amz-Expires=123" in parsed.query

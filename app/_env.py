@@ -2,9 +2,12 @@ import os
 from pathlib import Path
 from typing import Any, Optional, Callable
 
+
 class ConfigurationError(Exception):
     """Raised when a required configuration is missing or invalid."""
+
     pass
+
 
 def get_config(
     name: str,
@@ -12,7 +15,7 @@ def get_config(
     default: Optional[Any] = None,
     required: bool = False,
     cast: Callable[[str], Any] = lambda x: x,
-    allow_file: bool = True
+    allow_file: bool = True,
 ) -> Any:
     """
     Load a config value by:
@@ -32,13 +35,15 @@ def get_config(
                 raise ConfigurationError(f"Failed to read config file {file_path}: {e}")
     if not val:
         val = default
-        
+
     try:
         result = cast(val) if val is not None else None
     except Exception as e:
-        raise ConfigurationError(f"Failed to cast config '{name}' with value '{val}': {e}")
-    
+        raise ConfigurationError(
+            f"Failed to cast config '{name}' with value '{val}': {e}"
+        )
+
     if required and (result is None or (isinstance(result, str) and not result)):
         raise ConfigurationError(f"Required config '{name}' is missing or empty.")
-    
+
     return result

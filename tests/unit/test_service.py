@@ -11,11 +11,10 @@ from app.errors import (
     StorageError,
 )
 
+
 # Helper: base64 encode a bytes object
 def _b64(payload: bytes) -> str:
     return base64.b64encode(payload).decode()
-
-
 
 
 # Minimal in-memory S3 stub
@@ -33,11 +32,7 @@ class _FakePaginator:
 
     def paginate(self, **_):
         # boto returns an iterator of pages; each has "Contents"
-        return [
-            {
-                "Contents": [{"Key": k} for k in self._objects.keys()]
-            }
-        ]
+        return [{"Contents": [{"Key": k} for k in self._objects.keys()]}]
 
 
 class FakeS3:
@@ -63,7 +58,6 @@ class FakeS3:
         if key not in self.objects:
             raise StorageError("object missing")  # exercise error path
         return f"https://fake-s3/{key}?exp={ExpiresIn}"
-
 
 
 # Pytest fixture: real service wired to FakeS3
@@ -103,7 +97,6 @@ def test_upload_and_list_and_latest(svc):
     assert latest.version == "2.0.0"
 
 
-
 # Duplicate version
 def test_duplicate_version_raises(svc):
     payload = {"version": "3.3.3", "firmware_b64": _b64(b"x")}
@@ -112,15 +105,11 @@ def test_duplicate_version_raises(svc):
         svc.upload_firmware("p", "d", payload)
 
 
-
 # Bad checksum
 def test_checksum_mismatch(svc):
-    bad = {"version": "4.0.0",
-           "firmware_b64": _b64(b"x"),
-           "checksum": "deadbeef"}
+    bad = {"version": "4.0.0", "firmware_b64": _b64(b"x"), "checksum": "deadbeef"}
     with pytest.raises(ChecksumMismatchError):
         svc.upload_firmware("p", "d", bad)
-
 
 
 # get_latest with no releases → ValueError
@@ -129,19 +118,18 @@ def test_get_latest_no_releases(svc):
         svc.get_latest("ghost", "device")
 
 
-
 # Presigned-URL generation + error path
 def test_presigned_url_success_and_missing(svc):
-    svc.upload_firmware("p", "d", {"version": "5.0.0",
-                                   "firmware_b64": _b64(b"x")})
+    svc.upload_firmware("p", "d", {"version": "5.0.0", "firmware_b64": _b64(b"x")})
     url = svc.generate_presigned_url("p", "d", "5.0.0", expires_in=42)
     assert url.endswith("firmware.bin?exp=42")
 
     # Asking for a non-existent object triggers StorageError via FakeS3
     with pytest.raises(StorageError):
         svc.generate_presigned_url("p", "d", "does-not-exist")
-        
-# list_firmware → paginator blows up 
+
+
+# list_firmware → paginator blows up
 def test_list_firmware_client_error(monkeypatch, svc):
     class BadPaginator:
         def paginate(self, *_, **__):
@@ -158,36 +146,41 @@ def test_list_firmware_client_error(monkeypatch, svc):
     with pytest.raises(StorageError):
         svc.list_firmware("p", "d")
 
-@pytest.mark.parametrize("payload", [
-    {"firmware_b64": _b64(b"x")},
-    {"version": "not-semver", "firmware_b64": _b64(b"x")}
-])
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"firmware_b64": _b64(b"x")},
+        {"version": "not-semver", "firmware_b64": _b64(b"x")},
+    ],
+)
 def test_upload_bad_version(svc, payload):
     with pytest.raises(ValueError):
         svc.upload_firmware("p", "d", payload)
+
 
 def test_upload_bad_base64(svc):
     bad = {"version": "1.2.3", "firmware_b64": "!!not-b64!!"}
     with pytest.raises(ValueError):
         svc.upload_firmware("p", "d", bad)
-        
-        
+
+
 def test_get_latest_already_latest(svc):
-    svc.upload_firmware("p", "d", {"version": "0.9.0",
-                                   "firmware_b64": _b64(b"x")})
+    svc.upload_firmware("p", "d", {"version": "0.9.0", "firmware_b64": _b64(b"x")})
     latest = svc.get_latest("p", "d", current_version="1.0.0")
-    assert latest.version == "0.9.0"    # returns highest available
-    
-    
+    assert latest.version == "0.9.0"  # returns highest available
+
+
 def test_presigned_url_client_error(monkeypatch, svc):
     def boom(*_, **__):
         raise ClientError({"Error": {"Code": "NoSuchKey"}}, "Get")
+
     monkeypatch.setattr(svc.s3, "generate_presigned_url", boom)
 
     with pytest.raises(StorageError):
         svc.generate_presigned_url("p", "d", "deadbeef")
-        
-        
+
+
 def test_upload_missing_firmware_blob(svc):
     """Omitting 'firmware_b64' triggers the KeyError→ValueError branch (88-93)."""
     with pytest.raises(ValueError):
@@ -199,17 +192,18 @@ def test_get_latest_no_current_version(svc):
     svc.upload_firmware("proj", "dev", {"version": "1.0.0", "firmware_b64": _b64(b"a")})
     svc.upload_firmware("proj", "dev", {"version": "2.0.0", "firmware_b64": _b64(b"b")})
 
-    latest = svc.get_latest("proj", "dev")    # no current_version arg
+    latest = svc.get_latest("proj", "dev")  # no current_version arg
     assert latest.version == "2.0.0"
-    
-        
+
+
 def test_get_latest_no_current_arg(svc):
     svc.upload_firmware("p", "d", {"version": "1.0.0", "firmware_b64": _b64(b"a")})
     svc.upload_firmware("p", "d", {"version": "2.0.0", "firmware_b64": _b64(b"b")})
 
-    latest = svc.get_latest("p", "d")          # ← no current_version
+    latest = svc.get_latest("p", "d")  # ← no current_version
     assert latest.version == "2.0.0"
-    
+
+
 def test_list_skips_bad_metadata(svc):
     """
     Put a metadata.json object that contains INVALID JSON.
@@ -219,21 +213,22 @@ def test_list_skips_bad_metadata(svc):
     svc.s3.put_object(
         Bucket=svc.bucket,
         Key=bad_key,
-        Body=b'{"this_is":"NOT valid JSON"',            # missing closing }
+        Body=b'{"this_is":"NOT valid JSON"',  # missing closing }
         ContentType="application/json",
     )
 
     # Should return an empty list (skipped), not raise.
     metas = svc.list_firmware("p", "d")
     assert metas == []
-    
+
+
 def test_get_latest_fallback_to_latest(svc):
     svc.upload_firmware("p", "d", {"version": "1.0.0", "firmware_b64": _b64(b"a")})
     svc.upload_firmware("p", "d", {"version": "2.0.0", "firmware_b64": _b64(b"b")})
 
-    latest = svc.get_latest("p", "d")          # current_version=None
+    latest = svc.get_latest("p", "d")  # current_version=None
     assert latest.version == "2.0.0"
-    
+
 
 def test_upload_s3_client_error(monkeypatch, svc):
     """
@@ -242,11 +237,9 @@ def test_upload_s3_client_error(monkeypatch, svc):
     """
     # any call to put_object should raise the AWS client error
     boom = ClientError({"Error": {"Code": "500"}}, "Put")
-    monkeypatch.setattr(svc.s3, "put_object",
-                        lambda **_: (_ for _ in ()).throw(boom))
+    monkeypatch.setattr(svc.s3, "put_object", lambda **_: (_ for _ in ()).throw(boom))
 
     with pytest.raises(StorageError):
-        svc.upload_firmware("proj",
-                            "dev",
-                            {"version": "1.0.0",
-                             "firmware_b64": _b64(b"x")})
+        svc.upload_firmware(
+            "proj", "dev", {"version": "1.0.0", "firmware_b64": _b64(b"x")}
+        )

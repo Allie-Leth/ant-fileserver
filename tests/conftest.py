@@ -6,11 +6,13 @@ import os
 from pathlib import Path
 from datetime import datetime, timezone
 from moto import mock_aws
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from app.blueprints.firmware.service import FirmwareService, FirmwareMetaData
 
 
 _BUCKET = "firmware"
+
 
 @pytest.fixture(autouse=True, scope="session")
 def _dummy_app_env():
@@ -20,6 +22,7 @@ def _dummy_app_env():
     os.environ.setdefault("STORAGE_ACCESS_KEY_ID", "x")
     os.environ.setdefault("STORAGE_SECRET_ACCESS_KEY", "y")
     os.environ.setdefault("STORAGE_REGION", "us-east-1")
+
 
 @pytest.fixture(scope="function")
 def svc():
@@ -54,9 +57,11 @@ def svc():
             region="us-east-1",
         )
 
+
 @pytest.fixture()
 def fake_service(monkeypatch):
     """In-memory stand-in that mimics FirmwareService API."""
+
     class _Fake:
         def __init__(self):
             self._store = {
@@ -92,6 +97,7 @@ def fake_service(monkeypatch):
 
     # Monkey-patch the service instance the app factory would create
     import app
+
     monkeypatch.setattr(app, "FirmwareService", lambda *a, **kw: svc)
 
     return svc
@@ -102,12 +108,12 @@ def client(fake_service, monkeypatch):
     """Flask test-client with our fake service injected."""
     from app import create_app
 
-    app_ = create_app("development")   # DEBUG true simplifies traceback
+    app_ = create_app("development")  # DEBUG true simplifies traceback
     with app_.test_client() as c:
         # Inject the fake service into all routes that expect 'svc'
         for rule in app_.url_map.iter_rules():
             if rule.endpoint.startswith("firmware."):
 
-                rule.defaults = (rule.defaults or {})
+                rule.defaults = rule.defaults or {}
                 rule.defaults["svc"] = fake_service
         yield c

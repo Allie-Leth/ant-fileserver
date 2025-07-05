@@ -1,10 +1,12 @@
 import os
 import pytest
 
+
 @pytest.mark.integration
 def test_bucket_exists(s3):
     names = [b["Name"] for b in s3.list_buckets()["Buckets"]]
     assert os.environ["STORAGE_BUCKET"] in names
+
 
 @pytest.mark.integration
 def test_put_and_get_object(s3):

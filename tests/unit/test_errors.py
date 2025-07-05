@@ -19,20 +19,20 @@ def make_throw_route(app, rule, exc):
     @app.route(rule)
     def _route():
         raise exc
-    return _route
 
+    return _route
 
 
 # Parametric test for every domain error in the map
 @pytest.mark.parametrize(
     "exc_cls, exp",
     [
-        (DeviceNotFoundError("no device"),     _ERROR_HANDLING[DeviceNotFoundError]),
-        (VersionNotFoundError("v123"),         _ERROR_HANDLING[VersionNotFoundError]),
-        (DuplicateVersionError("1.0.0"),       _ERROR_HANDLING[DuplicateVersionError]),
-        (ChecksumMismatchError("bad sha"),     _ERROR_HANDLING[ChecksumMismatchError]),
-        (StorageError("disk full"),            _ERROR_HANDLING[StorageError]),
-        (FirmwareError("general failure"),     _ERROR_HANDLING[FirmwareError]),
+        (DeviceNotFoundError("no device"), _ERROR_HANDLING[DeviceNotFoundError]),
+        (VersionNotFoundError("v123"), _ERROR_HANDLING[VersionNotFoundError]),
+        (DuplicateVersionError("1.0.0"), _ERROR_HANDLING[DuplicateVersionError]),
+        (ChecksumMismatchError("bad sha"), _ERROR_HANDLING[ChecksumMismatchError]),
+        (StorageError("disk full"), _ERROR_HANDLING[StorageError]),
+        (FirmwareError("general failure"), _ERROR_HANDLING[FirmwareError]),
     ],
 )
 def test_domain_errors_mapped(exc_cls, exp):
@@ -50,7 +50,6 @@ def test_domain_errors_mapped(exc_cls, exp):
     assert body["message"] == str(exc_cls)
 
 
-
 # Unexpected / non-domain errors → 500
 def test_unexpected_error():
     app = Flask(__name__)
@@ -64,6 +63,6 @@ def test_unexpected_error():
         res = c.get("/boom")
         body = res.get_json()
 
-    assert res.status_code == 404            # because NotFound carries .code = 404
+    assert res.status_code == 404  # because NotFound carries .code = 404
     assert body["error"] == "unexpected_error"
     assert "manual - not mapped" in body["message"]

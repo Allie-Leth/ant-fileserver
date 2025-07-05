@@ -1,7 +1,13 @@
 from flask import Blueprint, jsonify, request, current_app
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, get_jwt
+from flask_jwt_extended import (
+    create_access_token,
+    jwt_required,
+    get_jwt_identity,
+    get_jwt,
+)
 
 auth_bp = Blueprint("auth", __name__)
+
 
 # POST /api/v1/auth/login
 @auth_bp.route("/login", methods=["POST"])
@@ -25,6 +31,7 @@ def login():
     )
     return jsonify({"access_token": token}), 200
 
+
 # POST /api/v1/auth/refresh
 @auth_bp.route("/refresh", methods=["POST"])
 @jwt_required(refresh=True)
@@ -41,6 +48,7 @@ def refresh():
     )
     return jsonify({"access_token": new_token}), 200
 
+
 # GET /api/v1/auth/whoami
 @auth_bp.route("/whoami", methods=["GET"])
 @jwt_required()
@@ -48,9 +56,12 @@ def whoami():
     """
     Returns the caller’s API key and roles as JSON.
     """
-    return jsonify(
-        {
-            "key": get_jwt_identity(),           # string
-            "roles": get_jwt().get("roles", []),
-        }
-    ), 200
+    return (
+        jsonify(
+            {
+                "key": get_jwt_identity(),  # string
+                "roles": get_jwt().get("roles", []),
+            }
+        ),
+        200,
+    )

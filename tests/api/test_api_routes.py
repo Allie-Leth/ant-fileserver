@@ -10,11 +10,12 @@ API_KEY = "dev-key"
 #  Auth
 # --------------------------------------------------------------------------- #
 
+
 def test_login_and_access_token(client):
     res = client.post("/api/v1/auth/login", json={"api_key": API_KEY})
     assert res.status_code == 200
     token = res.get_json()["access_token"]
-    assert token.startswith("ey")          # looks like JWT
+    assert token.startswith("ey")  # looks like JWT
 
 
 # --------------------------------------------------------------------------- #
@@ -32,10 +33,12 @@ def jwt_headers(client):
 #  Routes
 # --------------------------------------------------------------------------- #
 
+
 def test_firmware_list(client, jwt_headers):
     res = client.get("/api/v1/firmware/acme/widget", headers=jwt_headers)
     assert res.status_code == 200
     assert res.get_json()[0]["version"] == "1.0.0"
+
 
 def test_latest_with_url(client, jwt_headers):
     res = client.get("/api/v1/firmware/acme/widget/latest", headers=jwt_headers)
@@ -46,7 +49,7 @@ def test_latest_with_url(client, jwt_headers):
 def test_upload_requires_role(client):
     with client.application.app_context():
         bad_token = create_access_token(
-            identity=API_KEY, 
+            identity=API_KEY,
             additional_claims={"roles": []},
         )
 
@@ -54,8 +57,8 @@ def test_upload_requires_role(client):
         "/api/v1/firmware/acme/widget/upload",
         #   ↓ put the token in JSON because app expects it there first
         json={
-            "access_token": bad_token,                 # ← critical
-            "version":      "3.0.0",
+            "access_token": bad_token,  # ← critical
+            "version": "3.0.0",
             "firmware_b64": base64.b64encode(b"x").decode(),
         },
     )
@@ -65,7 +68,7 @@ def test_upload_requires_role(client):
 def test_successful_upload(client):
     with client.application.app_context():
         up_token = create_access_token(
-            identity=API_KEY,  
+            identity=API_KEY,
             additional_claims={"roles": ["uploader"]},
         )
 
@@ -85,7 +88,7 @@ def test_successful_upload(client):
     # verify new version is latest
     latest = client.get("/api/v1/firmware/acme/widget/latest")
     assert latest.get_json()["version"] == "3.0.0"
-    
-    
+
+
 def _dump(resp):
     print("\nDEBUG-DUMP:", resp.status_code, resp.get_json(), "\n")

@@ -6,29 +6,28 @@ from typing import Optional, Dict, Any
 
 @dataclass(frozen=True)
 class FirmwareMetaData:
-    # Core Identity 
+    # Core Identity
     project: str
     device_type: str
     version: str
-    # Integrity & Delivery 
+    # Integrity & Delivery
     checksum: str
     file_size: int
 
-    # Release Info 
+    # Release Info
     release_date: datetime
     release_notes: str = ""
 
-    
-    # Defaults 
+    # Defaults
 
     checksum_algo: str = "sha256"
-    download_url: Optional[str] = None 
+    download_url: Optional[str] = None
     channel: str = "stable"
-    mandatory: bool = False 
+    mandatory: bool = False
     signature: Optional[str] = None
     min_bootloader: Optional[str] = None
     metadata_version: int = field(default=1)
-    
+
     # run-time validation hook
     def __post_init__(self):
         allowed = {1}
@@ -37,8 +36,9 @@ class FirmwareMetaData:
                 f"metadata_version {self.metadata_version!r} not supported; "
                 f"allowed: {sorted(allowed)}"
             )
+
     extra: Optional[Dict[str, Any]] = None
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> FirmwareMetaData:
         """
@@ -53,24 +53,23 @@ class FirmwareMetaData:
             dt = datetime.fromisoformat(dt_str)
 
         return cls(
-            project          = data["project"],
-            device_type      = data["device_type"],
-            version          = data["version"],
-            checksum         = data["checksum"],
-            file_size        = data["file_size"],
-            release_date     = dt,
-            download_url     = None,
-            release_notes    = data.get("release_notes", ""),
-            checksum_algo    = data.get("checksum_algo", "sha256"),
-
-            channel          = data.get("channel", "stable"),
-            mandatory        = data.get("mandatory", False),
-            signature        = data.get("signature"),
-            min_bootloader   = data.get("min_bootloader"),
-            metadata_version = int(data.get("metadata_version", 1)),
-            extra            = data.get("extra")
+            project=data["project"],
+            device_type=data["device_type"],
+            version=data["version"],
+            checksum=data["checksum"],
+            file_size=data["file_size"],
+            release_date=dt,
+            download_url=None,
+            release_notes=data.get("release_notes", ""),
+            checksum_algo=data.get("checksum_algo", "sha256"),
+            channel=data.get("channel", "stable"),
+            mandatory=data.get("mandatory", False),
+            signature=data.get("signature"),
+            min_bootloader=data.get("min_bootloader"),
+            metadata_version=int(data.get("metadata_version", 1)),
+            extra=data.get("extra"),
         )
-        
+
     def to_dict(self, include_url: bool = True) -> Dict[str, Any]:
         """
         Convert back to a JSON-serializable dict.

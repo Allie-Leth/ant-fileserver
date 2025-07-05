@@ -28,4 +28,3 @@ spec:
               name: ant-minio-config
             - secretRef:
               name: ant-minio-app-creds
-              
