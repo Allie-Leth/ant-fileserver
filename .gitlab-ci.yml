@@ -102,27 +102,3 @@ build-image:
     # 3) push
     - podman push --tls-verify=false "$INTERNAL_IMAGE:$CI_COMMIT_SHA"
   needs: [integration-test]
-
-########################################
-#            DEPLOY (DEV)
-########################################
-deploy-dev:
-  stage: deploy
-  image: bitnami/kubectl:1.29
-  variables:
-    KUBECONFIG: /kube/config
-  script:
-    - echo "$KUBE_CONFIG_BASE64" | base64 -d > "$KUBECONFIG"
-
-    # render overlay with fresh image
-    - kustomize build k8s/fileserver/overlays/dev \
-        | sed "s#IMAGE_PLACEHOLDER#$INTERNAL_IMAGE:$CI_COMMIT_SHA#g" \
-        | kubectl apply -f -
-
-    - kubectl -n ant rollout status deploy/ant-fileserver
-  environment:
-    name: dev
-    url: https://fileserver-dev.scopecreep.productions
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
-  needs: [build-image]
