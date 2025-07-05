@@ -10,7 +10,6 @@ stages:
   - deploy
 
 variables:
-  # Point all build/push/pull to the cluster-internal registry Service
   INTERNAL_REGISTRY: gitlab-registry.gitlab.svc.cluster.local:5000
   INTERNAL_IMAGE: $INTERNAL_REGISTRY/$CI_PROJECT_PATH
 
@@ -38,24 +37,19 @@ default:
 ########################################
 lint:
   stage: lint
-  image: python:3.12-slim
   script:
     - pip install --no-cache-dir ruff
     - ruff check .
-  artifacts:
-    expire_in: 1 week
-    when: always
 
 ########################################
 #            UNIT TESTS
 ########################################
 unit-test:
   stage: unit
-  image: python:3.12-slim
   variables:
     PYTHONPATH: "$CI_PROJECT_DIR"
   script:
-    - pip install --no-cache-dir -r requirements.txt moto pytest
+    - pip install --no-cache-dir moto pytest
     - pytest tests/unit
   needs: [lint]
 
@@ -64,7 +58,6 @@ unit-test:
 ########################################
 api-test:
   stage: api
-  image: python:3.12-slim
   variables:
     PYTHONPATH: "$CI_PROJECT_DIR"
     STORAGE_ENDPOINT: http://dummy
@@ -73,7 +66,6 @@ api-test:
     STORAGE_SECRET_ACCESS_KEY: dummy
     STORAGE_REGION: us-east-1
   script:
-    - pip install --no-cache-dir -r requirements.txt pytest
     - pytest tests/api
   needs: [unit-test]
 
@@ -82,7 +74,6 @@ api-test:
 ########################################
 integration-test:
   stage: integration
-  image: python:3.12-slim
   services:
     - name: minio/minio:latest
       alias: minio
@@ -94,8 +85,9 @@ integration-test:
     STORAGE_ACCESS_KEY_ID: minioadmin
     STORAGE_SECRET_ACCESS_KEY: minioadmin
     STORAGE_REGION: us-east-1
+  before_script:
+    - pip install --no-cache-dir boto3 pytest
   script:
-    - pip install --no-cache-dir -r requirements.txt boto3 pytest
     - pytest tests/integration
   needs: [api-test]
 
@@ -103,16 +95,12 @@ integration-test:
 #        BUILD & PUSH IMAGE
 ########################################
 build-image:
+  extends: .default_prod
   stage: build
-  image: quay.io/containers/podman:5.2
-  variables:
-    BUILDAH_ISOLATION: chroot
-    STORAGE_DRIVER: vfs
   script:
     - podman login --tls-verify=false \
         -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" \
         "$INTERNAL_REGISTRY"
-    - podman build --pull \
-        -t "$INTERNAL_IMAGE:$CI_COMMIT_SHA" .
+    - podman build --pull -t "$INTERNAL_IMAGE:$CI_COMMIT_SHA" .
     - podman push --tls-verify=false "$INTERNAL_IMAGE:$CI_COMMIT_SHA"
   needs: [integration-test]
