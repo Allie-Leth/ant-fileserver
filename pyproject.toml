@@ -1,0 +1,9 @@
+[tool.ruff]
+line-length = 88           # match Black default
+target-version = "py312"
+extend-select = ["B", "C4", "I", "UP"]   # flake-bugbear, comprehensions, import-order, pyupgrade
+ignore = ["E501"]          # long lines handled by Black
+
+[tool.black]
+line-length = 88
+target-version = ["py312"]

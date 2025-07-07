@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -22,11 +22,11 @@ class FirmwareMetaData:
     # Defaults
 
     checksum_algo: str = "sha256"
-    download_url: Optional[str] = None
+    download_url: str | None = None
     channel: str = "stable"
     mandatory: bool = False
-    signature: Optional[str] = None
-    min_bootloader: Optional[str] = None
+    signature: str | None = None
+    min_bootloader: str | None = None
     metadata_version: int = field(default=1)
 
     # run-time validation hook
@@ -38,10 +38,10 @@ class FirmwareMetaData:
                 f"allowed: {sorted(allowed)}"
             )
 
-    extra: Optional[Dict[str, Any]] = None
+    extra: dict[str, Any] | None = None
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> FirmwareMetaData:
+    def from_dict(cls, data: dict[str, Any]) -> FirmwareMetaData:
         """
         Build a FirmwareMetadata from a dict (e.g. loaded from metadata.json).
         Expects 'release_date' in ISO 8601, with optional trailing 'Z'.
@@ -49,7 +49,7 @@ class FirmwareMetaData:
         dt_str = data["release_date"]
         if dt_str.endswith("Z"):
             # Strip the 'Z', parse, then attach UTC tzinfo
-            dt = datetime.fromisoformat(dt_str[:-1]).replace(tzinfo=timezone.utc)
+            dt = datetime.fromisoformat(dt_str[:-1]).replace(tzinfo=UTC)
         else:
             dt = datetime.fromisoformat(dt_str)
 
@@ -71,7 +71,7 @@ class FirmwareMetaData:
             extra=data.get("extra"),
         )
 
-    def to_dict(self, include_url: bool = True) -> Dict[str, Any]:
+    def to_dict(self, include_url: bool = True) -> dict[str, Any]:
         """
         Convert back to a JSON-serializable dict.
         If include_url is False, omits the download_url field.
@@ -79,9 +79,7 @@ class FirmwareMetaData:
         result = asdict(self)
         # Convert datetime to ISO 8601 Z
         result["release_date"] = (
-            self.release_date.astimezone(timezone.utc)
-            .isoformat()
-            .replace("+00:00", "Z")
+            self.release_date.astimezone(UTC).isoformat().replace("+00:00", "Z")
         )
         if not include_url:
             result.pop("download_url", None)

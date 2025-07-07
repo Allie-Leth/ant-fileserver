@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict
+from typing import Any
 
 from ._env import get_config
 
@@ -41,7 +41,7 @@ class BaseConfig:
                 try:
                     val: Any = json.loads(raw)
                 except json.JSONDecodeError as e:
-                    raise ConfigurationError(f"Invalid JSON in {env_var}: {e}")
+                    raise ConfigurationError(f"Invalid JSON in {env_var}: {e}") from e
             elif conf_key == "DEBUG":
                 # coerce boolean-ish strings
                 val = str(raw).lower() in ("1", "true", "yes", "on")
@@ -68,7 +68,7 @@ class ProductionConfig(BaseConfig):
     pass
 
 
-config_map: Dict[str, type[BaseConfig]] = {
+config_map: dict[str, type[BaseConfig]] = {
     "development": DevelopmentConfig,
     "production": ProductionConfig,
     "default": DevelopmentConfig,  # Fallback if no env var set

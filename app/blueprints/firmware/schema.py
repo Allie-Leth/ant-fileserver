@@ -11,7 +11,7 @@ def validate_semver(value: str) -> None:
     try:
         semver.VersionInfo.parse(value)
     except ValueError:
-        raise ValidationError(f"Invalid semantic version: {value}")
+        raise ValidationError(f"Invalid semantic version: {value}") from None
 
 
 class LatestFirmwareQuerySchema(Schema):

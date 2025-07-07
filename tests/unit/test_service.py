@@ -1,5 +1,4 @@
 import base64
-from typing import Dict
 
 import pytest
 from botocore.exceptions import ClientError
@@ -27,7 +26,7 @@ class _FakeBody:
 
 
 class _FakePaginator:
-    def __init__(self, objects: Dict[str, bytes]):
+    def __init__(self, objects: dict[str, bytes]):
         self._objects = objects
 
     def paginate(self, **_):
@@ -39,7 +38,7 @@ class FakeS3:
     """Subset of boto3 S3 client used by FirmwareService."""
 
     def __init__(self):
-        self.objects: Dict[str, bytes] = {}
+        self.objects: dict[str, bytes] = {}
 
     # list_firmware
     def get_paginator(self, _name):

@@ -3,7 +3,6 @@ import datetime
 import hashlib
 import json
 import logging
-from typing import List, Optional
 
 import boto3
 import semver
@@ -37,7 +36,7 @@ class FirmwareService:
         secret_access_key: str,
         region: str,
         prefix: str = "releases",
-        config_overrides: Optional[Config] = None,
+        config_overrides: Config | None = None,
     ):
         # Allow overriding the botocore Config
         s3_config = config_overrides or Config(
@@ -57,7 +56,7 @@ class FirmwareService:
         self.bucket = bucket
         self.prefix = prefix
 
-    def list_firmware(self, project: str, device_type: str) -> List[FirmwareMetaData]:
+    def list_firmware(self, project: str, device_type: str) -> list[FirmwareMetaData]:
         """
         List all firmware metadata objects for a given project and device type,
         sorted by semantic version.
@@ -71,9 +70,9 @@ class FirmwareService:
         except ClientError as e:
             raise StorageError(
                 f"Failed to list objects for {project}/{device_type}: {e}"
-            )
+            ) from e
 
-        metas: List[FirmwareMetaData] = []
+        metas: list[FirmwareMetaData] = []
         for page in pages:
             for obj in page.get("Contents", []):
                 key = obj.get("Key", "")
@@ -127,12 +126,12 @@ class FirmwareService:
             version = payload["version"]
             semver.VersionInfo.parse(version)  # raises if bad
         except (KeyError, ValueError) as e:
-            raise ValueError(f"Invalid or missing version: {e}")
+            raise ValueError(f"Invalid or missing version: {e}") from e
 
         try:
             raw_bytes = base64.b64decode(payload["firmware_b64"])
         except (KeyError, ValueError) as e:
-            raise ValueError(f"Invalid base64 firmware blob: {e}")
+            raise ValueError(f"Invalid base64 firmware blob: {e}") from e
 
         supplied_checksum = payload.get("checksum")
         calc_checksum = hashlib.sha256(raw_bytes).hexdigest()
@@ -160,7 +159,7 @@ class FirmwareService:
             "release_date": payload.get(
                 "release_date",
                 datetime.datetime.utcnow()
-                .replace(tzinfo=datetime.timezone.utc)
+                .replace(tzinfo=datetime.UTC)
                 .isoformat()
                 .replace("+00:00", "Z"),
             ),
@@ -199,7 +198,7 @@ class FirmwareService:
         self,
         project: str,
         device_type: str,
-        current_version: Optional[str] = None,
+        current_version: str | None = None,
     ) -> FirmwareMetaData:
         """
         Return the next release after `current_version`,
@@ -236,4 +235,6 @@ class FirmwareService:
                 ExpiresIn=expires_in,
             )
         except ClientError as e:
-            raise StorageError(f"Failed to generate presigned URL for {key}: {e}")
+            raise StorageError(
+                f"Failed to generate presigned URL for {key}: {e}"
+            ) from e

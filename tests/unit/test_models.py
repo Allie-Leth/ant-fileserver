@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 
@@ -16,7 +16,7 @@ def test_from_dict_parses_dates_and_defaults():
     }
     meta = FirmwareMetaData.from_dict(data)
 
-    assert meta.release_date == datetime(2025, 1, 2, 3, 4, 5, tzinfo=timezone.utc)
+    assert meta.release_date == datetime(2025, 1, 2, 3, 4, 5, tzinfo=UTC)
     assert meta.channel == "stable"  # default value present
     assert meta.version == "1.2.3"
 
@@ -28,7 +28,7 @@ def test_to_dict_roundtrip():
         version="2.0.0",
         checksum="x",
         file_size=1,
-        release_date=datetime(2025, 1, 1, tzinfo=timezone.utc),
+        release_date=datetime(2025, 1, 1, tzinfo=UTC),
     )
     d = meta.to_dict(include_url=False)
     assert d["version"] == "2.0.0"
@@ -43,7 +43,7 @@ def test_metadata_version_validation():
             version="0.1.0",
             checksum="x",
             file_size=1,
-            release_date=datetime.now(timezone.utc),
+            release_date=datetime.now(UTC),
             metadata_version=99,  # unsupported
         )
 

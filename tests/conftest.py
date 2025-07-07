@@ -1,15 +1,15 @@
 import json
+import os
+import sys
+from datetime import UTC, datetime
+from pathlib import Path
+
 import boto3
 import pytest
-import sys
-import os
-from pathlib import Path
-from datetime import datetime, timezone
 from moto import mock_aws
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from app.blueprints.firmware.service import FirmwareService, FirmwareMetaData
-
+from app.blueprints.firmware.service import FirmwareMetaData, FirmwareService
 
 _BUCKET = "firmware"
 
@@ -77,7 +77,7 @@ def fake_service(monkeypatch):
                     version=v,
                     checksum="x",
                     file_size=1,
-                    release_date=datetime(2025, 1, 1, tzinfo=timezone.utc),
+                    release_date=datetime(2025, 1, 1, tzinfo=UTC),
                 )
                 for v in self._store.get((project, device_type), [])
             ]
@@ -113,7 +113,6 @@ def client(fake_service, monkeypatch):
         # Inject the fake service into all routes that expect 'svc'
         for rule in app_.url_map.iter_rules():
             if rule.endpoint.startswith("firmware."):
-
                 rule.defaults = rule.defaults or {}
                 rule.defaults["svc"] = fake_service
         yield c

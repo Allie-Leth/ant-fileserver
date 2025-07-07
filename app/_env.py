@@ -1,18 +1,17 @@
 import os
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any
 
 
 class ConfigurationError(Exception):
     """Raised when a required configuration is missing or invalid."""
 
-    pass
-
 
 def get_config(
     name: str,
     *,
-    default: Optional[Any] = None,
+    default: Any | None = None,
     required: bool = False,
     cast: Callable[[str], Any] = lambda x: x,
     allow_file: bool = True,
@@ -32,7 +31,10 @@ def get_config(
             try:
                 val = Path(file_path).read_text().strip()
             except Exception as e:
-                raise ConfigurationError(f"Failed to read config file {file_path}: {e}")
+                raise ConfigurationError(
+                    f"Failed to read config file {file_path}: {e}"
+                ) from e
+
     if not val:
         val = default
 
@@ -41,7 +43,7 @@ def get_config(
     except Exception as e:
         raise ConfigurationError(
             f"Failed to cast config '{name}' with value '{val}': {e}"
-        )
+        ) from e
 
     if required and (result is None or (isinstance(result, str) and not result)):
         raise ConfigurationError(f"Required config '{name}' is missing or empty.")
