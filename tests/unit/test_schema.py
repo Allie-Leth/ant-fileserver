@@ -2,8 +2,8 @@ import pytest
 from marshmallow import ValidationError
 
 from app.blueprints.firmware.schema import (
-    validate_semver,
     LatestFirmwareQuerySchema,
+    validate_semver,
 )
 
 

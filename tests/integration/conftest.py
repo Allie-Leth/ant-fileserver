@@ -1,7 +1,9 @@
 import os
-import pytest
+
 import boto3
+import pytest
 from botocore.exceptions import ClientError
+
 from app import create_app
 from app.blueprints.firmware.service import FirmwareService
 

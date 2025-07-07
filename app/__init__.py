@@ -1,13 +1,14 @@
 import logging.config
+
 from flask import Flask
 
-
-from .config import config_map
-from .extensions import jwt, cors, limiter
-from .errors import register_error_handlers
 from app.blueprints.auth.routes import auth_bp
 from app.blueprints.firmware.routes import firmware_bp
 from app.blueprints.firmware.service import FirmwareService
+
+from .config import config_map
+from .errors import register_error_handlers
+from .extensions import cors, jwt, limiter
 
 
 def create_app(config_name: str = "default") -> Flask:

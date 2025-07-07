@@ -1,8 +1,8 @@
+import base64
+import datetime
+import hashlib
 import json
 import logging
-import base64
-import hashlib
-import datetime
 from typing import List, Optional
 
 import boto3
@@ -11,11 +11,10 @@ from botocore.config import Config
 from botocore.exceptions import ClientError
 
 from app.errors import (
-    DuplicateVersionError,
     ChecksumMismatchError,
+    DuplicateVersionError,
     StorageError,
 )
-
 from app.models import FirmwareMetaData
 
 logger = logging.getLogger(__name__)

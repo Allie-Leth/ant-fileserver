@@ -1,13 +1,13 @@
 import base64
 from typing import Dict
-from botocore.exceptions import ClientError
 
 import pytest
+from botocore.exceptions import ClientError
 
 from app.blueprints.firmware.service import FirmwareService
 from app.errors import (
-    DuplicateVersionError,
     ChecksumMismatchError,
+    DuplicateVersionError,
     StorageError,
 )
 

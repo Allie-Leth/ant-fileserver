@@ -3,14 +3,14 @@ from flask import Flask
 from werkzeug.exceptions import NotFound
 
 from app.errors import (
-    register_error_handlers,
     _ERROR_HANDLING,
-    DeviceNotFoundError,
-    VersionNotFoundError,
-    DuplicateVersionError,
     ChecksumMismatchError,
-    StorageError,
+    DeviceNotFoundError,
+    DuplicateVersionError,
     FirmwareError,
+    StorageError,
+    VersionNotFoundError,
+    register_error_handlers,
 )
 
 

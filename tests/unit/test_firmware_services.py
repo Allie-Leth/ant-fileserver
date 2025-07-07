@@ -1,10 +1,11 @@
 import base64
-import pytest
 from urllib.parse import urlparse
 
+import pytest
+
 from app.errors import (
-    DuplicateVersionError,
     ChecksumMismatchError,
+    DuplicateVersionError,
 )
 from app.models import FirmwareMetaData
 

@@ -1,6 +1,6 @@
 import base64
 
-from app.errors import VersionNotFoundError, StorageError
+from app.errors import StorageError, VersionNotFoundError
 
 
 def _svc(app):

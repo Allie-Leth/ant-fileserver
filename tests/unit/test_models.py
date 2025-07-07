@@ -1,6 +1,6 @@
-from datetime import datetime, timezone, timedelta
-import pytest
+from datetime import datetime, timedelta, timezone
 
+import pytest
 
 from app.models import FirmwareMetaData
 

@@ -1,7 +1,9 @@
 import base64
+
 import pytest
 from flask import Flask
 from flask_jwt_extended import create_refresh_token
+
 from app.blueprints.auth.routes import auth_bp
 from app.extensions import jwt
 

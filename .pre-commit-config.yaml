@@ -1,12 +1,31 @@
+# .pre-commit-config.yaml  ── v1
 repos:
+  # --- Generic hygiene ---------------------------------------------
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
       - id: check-yaml
-        args: ['--allow-multiple-documents']
+        args: [--allow-multiple-documents]
       - id: trailing-whitespace
       - id: end-of-file-fixer
 
+  # --- Python lint + format (Ruff) ---------------------------------
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.7        # pin ⩾0.4 for `ruff-format`
+    hooks:
+      # Lint & *auto-fix* (adds/edits code)  ────────────────────
+      - id: ruff
+        args: [--fix]   # remove to fail fast without mutating files
+      # dedicated import-sort pass
+      - id: ruff
+        name: ruff-isort
+        entry: ruff check --select I --fix
+        language: python
+        types: [python]
+      # PEP 8 formatter (does **no** lint)  ─────────────────────
+      - id: ruff-format
+
+  # --- Black (final canonical formatting) --------------------------
   - repo: https://github.com/psf/black
     rev: 25.1.0
     hooks:

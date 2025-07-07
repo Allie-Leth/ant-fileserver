@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Any, Optional, Callable
+from typing import Any, Callable, Optional
 
 
 class ConfigurationError(Exception):

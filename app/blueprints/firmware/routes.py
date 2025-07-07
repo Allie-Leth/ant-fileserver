@@ -1,14 +1,15 @@
-from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt
-from marshmallow import ValidationError
 import dataclasses
 
-from .schema import (
-    LatestFirmwareQuerySchema,
-    FirmwareMetaDataSchema,
-)
+from flask import Blueprint, jsonify, request
+from flask_jwt_extended import get_jwt, jwt_required
+from marshmallow import ValidationError
 
 from app.models import FirmwareMetaData
+
+from .schema import (
+    FirmwareMetaDataSchema,
+    LatestFirmwareQuerySchema,
+)
 
 firmware_bp = Blueprint("firmware", __name__)
 

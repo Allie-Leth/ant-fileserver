@@ -1,5 +1,6 @@
 # tests/api/test_api_routes.py
 import base64
+
 import pytest
 from flask_jwt_extended import create_access_token
 

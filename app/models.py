@@ -1,7 +1,8 @@
 from __future__ import annotations
-from dataclasses import dataclass, asdict, field
+
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
 
 @dataclass(frozen=True)
