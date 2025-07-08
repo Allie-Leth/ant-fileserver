@@ -1,3 +1,10 @@
+"""
+Configuration utilities.
+
+Provides `get_config` for loading settings from environment variables or files,
+and `ConfigurationError` for reporting missing or invalid configurations.
+"""
+
 import logging
 
 from flask import jsonify
