@@ -39,8 +39,6 @@ def jwt_headers(client):
 # --------------------------------------------------------------------------- #
 #  Routes
 # --------------------------------------------------------------------------- #
-
-
 def test_firmware_list(client, jwt_headers):
     """GET /firmware/<project>/<device_type> returns 200 and the first version."""
     res = client.get("/api/v1/firmware/acme/widget", headers=jwt_headers)
