@@ -1,5 +1,4 @@
-"""
-Schemas for firmware API.
+"""Schemas for firmware API.
 
 Defines:
 - `validate_semver`: custom validator for semantic versions.
@@ -22,8 +21,7 @@ def validate_semver(value: str) -> None:
 
 
 class LatestFirmwareQuerySchema(Schema):
-    """Schema for GET /<project>/<device_type>/latest?current=<version>
-    """
+    """Schema for GET /<project>/<device_type>/latest?current=<version>"""
 
     current = fields.Str(
         required=False,
@@ -36,8 +34,7 @@ class LatestFirmwareQuerySchema(Schema):
 
 
 class FirmwareMetaDataSchema(Schema):
-    """Serialize the FirmwareMetaData dataclass into JSON.
-    """
+    """Serialize the FirmwareMetaData dataclass into JSON."""
 
     project = fields.Str(required=True)
     device_type = fields.Str(required=True)
