@@ -1,5 +1,4 @@
-"""
-FirmwareService module.
+"""FirmwareService module.
 
 Provides `FirmwareService`, an S3‐backed service for listing, uploading,
 and retrieving firmware metadata via boto3 and semver.
@@ -226,8 +225,7 @@ class FirmwareService:
         version: str,
         expires_in: int = 3600,  # Default 1 hour
     ) -> str:
-        """Generate a presigned S3 URL for the firmware binary.
-        """
+        """Generate a presigned S3 URL for the firmware binary."""
         key = f"{self.prefix}/{project}/{device_type}/{version}/firmware.bin"
 
         try:
