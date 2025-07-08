@@ -1,3 +1,8 @@
+"""Integration smoke tests for S3 storage backend.
+
+Verifies bucket existence and basic put/get operations using the live MinIO service.
+"""
+
 import pytest
 from flask import Flask
 
@@ -6,6 +11,7 @@ from app.config import BaseConfig, ConfigurationError
 
 def test_init_app_invalid_json(monkeypatch):
     """Put malformed JSON in API_KEY_ROLES.
+
     init_app must raise ConfigurationError (lines 35-36).
     """
     # ── All required env-vars ───────────────────────────────────────────
