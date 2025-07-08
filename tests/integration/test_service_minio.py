@@ -1,3 +1,9 @@
+"""Integration tests for FirmwareService with a real MinIO backend.
+
+Validates that uploading a firmware blob and retrieving the latest metadata
+works end-to-end.
+"""
+
 import base64
 
 import pytest
@@ -5,6 +11,7 @@ import pytest
 
 @pytest.mark.integration
 def test_upload_and_latest(live_service):
+    """Upload a firmware binary and verify get_latest returns the new version."""
     raw = b"bin"
     payload = {
         "version": "9.9.9",
