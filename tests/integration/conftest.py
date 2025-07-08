@@ -16,7 +16,7 @@ from app.blueprints.firmware.service import FirmwareService
 
 # ---------- S3 client ----------
 @pytest.fixture(scope="session")
-def s3_client():
+def s3():
     """Return a boto3 S3 client wired to the endpoint in environment vars."""
     return boto3.client(
         "s3",
@@ -29,18 +29,18 @@ def s3_client():
 
 # ---------- Make sure bucket exists ----------
 @pytest.fixture(scope="session", autouse=True)
-def ensure_bucket(s3_client):
+def ensure_bucket(s3):
     """Create the test bucket once per session if it doesn’t already exist."""
     bucket = os.environ["STORAGE_BUCKET"]
     try:
-        s3_client.head_bucket(Bucket=bucket)
+        s3.head_bucket(Bucket=bucket)
     except ClientError:
-        s3_client.create_bucket(Bucket=bucket)
+        s3.create_bucket(Bucket=bucket)
 
 
 # ---------- Live service ----------
 @pytest.fixture(scope="session")
-def prod_app():
+def live_service():
     """FirmwareService instance that talks to the live S3 backend."""
     return FirmwareService(
         endpoint_url=os.environ["STORAGE_ENDPOINT"],
