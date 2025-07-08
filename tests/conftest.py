@@ -109,7 +109,7 @@ def fake_service(monkeypatch):
             )
 
     fake_svc = _Fake()
-    monkeypatch.setattr(app, "FirmwareService", lambda *a, **kw: fake_svc)
+    monkeypatch.setattr(app, "FirmwareService")
     return fake_svc
 
 
