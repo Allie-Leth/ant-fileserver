@@ -7,7 +7,6 @@ stages:
   - api
   - integration
   - build
-  - deploy
 
 variables:
   INTERNAL_REGISTRY: gitlab-registry.gitlab.svc.cluster.local:5000
@@ -16,8 +15,15 @@ variables:
 default:
   image: python:3.12-slim
 
+.lint_base: &lint_base
+  image: python:3.12-slim
+  before_script:
+    - pip install --no-cache-dir ruff
+
+# ── Full dev dependencies for pytest & moto
 .test_base: &test_base
   before_script:
+    - pip install --no-cache-dir -r requirements.txt
     - pip install --no-cache-dir -r requirements-dev.txt
   artifacts:
     expire_in: 1 week
@@ -38,7 +44,7 @@ default:
 #            LINT STAGE
 ########################################
 lint:
-  <<: *test_base
+  <<: *lint_base
   stage: lint
   script:
     - ruff check .
