@@ -12,8 +12,7 @@ from .extensions import cors, jwt, limiter
 
 
 def create_app(config_name: str = "default") -> Flask:
-    """
-    Application factory: creates, configures, and returns a Flask app.
+    """Application factory: creates, configures, and returns a Flask app.
 
     Steps:
       1) Load & validate config
@@ -23,7 +22,6 @@ def create_app(config_name: str = "default") -> Flask:
       5) Register blueprints (auth + firmware)
       6) Register centralized error handlers
     """
-
     # App & Config
     app = Flask(__name__)
     cfg_cls = config_map.get(config_name, config_map["default"])
