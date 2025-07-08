@@ -12,7 +12,9 @@ from marshmallow import Schema, ValidationError, fields
 
 def validate_semver(value: str) -> None:
     """Ensure the string is a valid semantic version.
-    Raises ValidationError otherwise.
+
+    Raises:
+        ValidationError: if the string is not valid semver.
     """
     try:
         semver.VersionInfo.parse(value)
@@ -21,7 +23,9 @@ def validate_semver(value: str) -> None:
 
 
 class LatestFirmwareQuerySchema(Schema):
-    """Schema for GET /<project>/<device_type>/latest?current=<version>"""
+    """Query-string schema for
+    `GET /<project>/<device_type>/latest?current=<version>`.
+    """
 
     current = fields.Str(
         required=False,
@@ -34,7 +38,7 @@ class LatestFirmwareQuerySchema(Schema):
 
 
 class FirmwareMetaDataSchema(Schema):
-    """Serialize the FirmwareMetaData dataclass into JSON."""
+    """Schema that serializes a `FirmwareMetaData` dataclass to JSON."""
 
     project = fields.Str(required=True)
     device_type = fields.Str(required=True)
