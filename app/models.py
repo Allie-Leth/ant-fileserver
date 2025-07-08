@@ -42,8 +42,7 @@ class FirmwareMetaData:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> FirmwareMetaData:
-        """
-        Build a FirmwareMetadata from a dict (e.g. loaded from metadata.json).
+        """Build a FirmwareMetadata from a dict (e.g. loaded from metadata.json).
         Expects 'release_date' in ISO 8601, with optional trailing 'Z'.
         """
         dt_str = data["release_date"]
@@ -72,8 +71,7 @@ class FirmwareMetaData:
         )
 
     def to_dict(self, include_url: bool = True) -> dict[str, Any]:
-        """
-        Convert back to a JSON-serializable dict.
+        """Convert back to a JSON-serializable dict.
         If include_url is False, omits the download_url field.
         """
         result = asdict(self)

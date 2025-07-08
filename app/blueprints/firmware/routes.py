@@ -16,8 +16,7 @@ firmware_bp = Blueprint("firmware", __name__)
 
 @firmware_bp.route("/<project>/<device_type>", methods=["GET"])
 def list_all(project: str, device_type: str, svc):
-    """
-    GET /api/v1/firmware/<project>/<device_type>
+    """GET /api/v1/firmware/<project>/<device_type>
     Returns a list of all firmware metadata (no download URLs).
     """
     # No query params, just list all versions
@@ -43,8 +42,7 @@ def list_all(project: str, device_type: str, svc):
 
 @firmware_bp.route("/<project>/<device_type>/latest", methods=["GET"])
 def get_latest(project: str, device_type: str, svc):
-    """
-    GET /api/v1/firmware/<project>/<device_type>/latest?current=<semver>
+    """GET /api/v1/firmware/<project>/<device_type>/latest?current=<semver>
     Returns the next firmware after `current`, or the latest if none specified.
     """
     try:
@@ -74,8 +72,7 @@ def get_latest(project: str, device_type: str, svc):
 @firmware_bp.post("/<project>/<device_type>/upload")
 @jwt_required()
 def upload(project: str, device_type: str, svc):
-    """
-    POST /api/v1/firmware/<project>/<device_type>/upload
+    """POST /api/v1/firmware/<project>/<device_type>/upload
     Body: JSON described in FirmwareService.upload_firmware().
     Requires 'uploader' role.
     """

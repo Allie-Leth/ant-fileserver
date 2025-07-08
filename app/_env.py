@@ -1,3 +1,10 @@
+"""
+Configuration utilities.
+
+Provides `get_config()` for loading settings from environment variables
+or files, and the `ConfigurationError` exception for reporting failures.
+"""
+
 import os
 from collections.abc import Callable
 from pathlib import Path
@@ -16,8 +23,7 @@ def get_config(
     cast: Callable[[str], Any] = lambda x: x,
     allow_file: bool = True,
 ) -> Any:
-    """
-    Load a config value by:
+    """Load a config value by:
       1) ENV:        os.getenv(name)
       2) ENV file:  if allow_file and os.getenv(name + "_FILE"), read that file
       3) DEFAULT:    default

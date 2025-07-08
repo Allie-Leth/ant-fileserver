@@ -5,11 +5,9 @@ from app.config import BaseConfig, ConfigurationError
 
 
 def test_init_app_invalid_json(monkeypatch):
-    """
-    Put malformed JSON in API_KEY_ROLES.
+    """Put malformed JSON in API_KEY_ROLES.
     init_app must raise ConfigurationError (lines 35-36).
     """
-
     # ── All required env-vars ───────────────────────────────────────────
     monkeypatch.setenv("STORAGE_ENDPOINT", "http://s3")
     monkeypatch.setenv("STORAGE_BUCKET", "fw")

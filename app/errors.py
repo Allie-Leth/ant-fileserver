@@ -43,8 +43,7 @@ _ERROR_HANDLING = {
 
 
 def register_error_handlers(app):
-    """
-    Register each domain error based on the _ERROR_HANDLING config.
+    """Register each domain error based on the _ERROR_HANDLING config.
     """
     for exc_cls, opts in _ERROR_HANDLING.items():
 

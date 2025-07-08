@@ -1,5 +1,4 @@
-"""
-Application factory module.
+"""Application factory module.
 
 Exposes `create_app`, which:
   1) Loads & validates config
@@ -19,8 +18,8 @@ from app.blueprints.firmware.routes import firmware_bp
 from app.blueprints.firmware.service import FirmwareService
 
 from .config import config_map
-from .extensions import cors, jwt, limiter
 from .errors import register_error_handlers
+from .extensions import cors, jwt, limiter
 
 
 def create_app(config_name: str = "default") -> Flask:

@@ -1,6 +1,5 @@
 # pylint: disable=redefined-outer-name
-"""
-Pytest fixtures for integration tests.
+"""Pytest fixtures for integration tests.
 
 Includes fixtures for in-memory S3 backend setup and a production Flask app.
 """
@@ -8,8 +7,8 @@ Includes fixtures for in-memory S3 backend setup and a production Flask app.
 import os
 
 import boto3
-from botocore.exceptions import ClientError
 import pytest
+from botocore.exceptions import ClientError
 
 from app import create_app
 from app.blueprints.firmware.service import FirmwareService

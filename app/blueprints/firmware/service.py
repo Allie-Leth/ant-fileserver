@@ -23,8 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 class FirmwareService:
-    """
-    Talks to any S3-compatible store via boto3,
+    """Talks to any S3-compatible store via boto3,
     using STORAGE_* credentials passed in at startup.
     """
 
@@ -57,8 +56,7 @@ class FirmwareService:
         self.prefix = prefix
 
     def list_firmware(self, project: str, device_type: str) -> list[FirmwareMetaData]:
-        """
-        List all firmware metadata objects for a given project and device type,
+        """List all firmware metadata objects for a given project and device type,
         sorted by semantic version.
         """
         key_prefix = f"{self.prefix}/{project}/{device_type}/"
@@ -109,8 +107,7 @@ class FirmwareService:
         device_type: str,
         payload: dict,
     ) -> None:
-        """
-        Persist a new firmware binary + metadata.json.
+        """Persist a new firmware binary + metadata.json.
 
         Expected JSON payload:
         {
@@ -200,8 +197,7 @@ class FirmwareService:
         device_type: str,
         current_version: str | None = None,
     ) -> FirmwareMetaData:
-        """
-        Return the next release after `current_version`,
+        """Return the next release after `current_version`,
         or the highest version if none specified or up-to-date.
         """
         releases = self.list_firmware(project, device_type)
@@ -223,8 +219,7 @@ class FirmwareService:
         version: str,
         expires_in: int = 3600,  # Default 1 hour
     ) -> str:
-        """
-        Generate a presigned S3 URL for the firmware binary.
+        """Generate a presigned S3 URL for the firmware binary.
         """
         key = f"{self.prefix}/{project}/{device_type}/{version}/firmware.bin"
 

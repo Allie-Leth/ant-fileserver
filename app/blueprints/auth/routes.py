@@ -12,8 +12,7 @@ auth_bp = Blueprint("auth", __name__)
 # POST /api/v1/auth/login
 @auth_bp.route("/login", methods=["POST"])
 def login():
-    """
-    Body JSON or header:
+    """Body JSON or header:
       { "api_key": "<key>" }   OR   X-API-KEY: <key>
     Returns: { "access_token": "<JWT>" }
     """
@@ -36,8 +35,7 @@ def login():
 @auth_bp.route("/refresh", methods=["POST"])
 @jwt_required(refresh=True)
 def refresh():
-    """
-    Headers: Authorization: Bearer <refresh_token>
+    """Headers: Authorization: Bearer <refresh_token>
     Returns a fresh access token.
     """
     identity = get_jwt_identity()
@@ -53,8 +51,7 @@ def refresh():
 @auth_bp.route("/whoami", methods=["GET"])
 @jwt_required()
 def whoami():
-    """
-    Returns the caller’s API key and roles as JSON.
+    """Returns the caller’s API key and roles as JSON.
     """
     return (
         jsonify(

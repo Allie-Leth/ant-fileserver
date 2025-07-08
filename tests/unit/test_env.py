@@ -33,8 +33,7 @@ def test_json_decode_failure(monkeypatch):
 
 
 def test_file_env_success(tmp_path, monkeypatch):
-    """
-    When FOO is unset and FOO_FILE points to a readable file, the helper
+    """When FOO is unset and FOO_FILE points to a readable file, the helper
     should read and return its content.
     """
     cfg_file = tmp_path / "bucket.txt"
@@ -47,8 +46,7 @@ def test_file_env_success(tmp_path, monkeypatch):
 
 
 def test_file_env_read_error(monkeypatch):
-    """
-    When the file pointed to by *_FILE cannot be read, get_config must raise
+    """When the file pointed to by *_FILE cannot be read, get_config must raise
     ConfigurationError (except branch on lines 29-32).
     """
     monkeypatch.delenv("BROKEN", raising=False)

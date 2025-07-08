@@ -48,8 +48,7 @@ def test_refresh_and_whoami(auth_app):
 
 
 def test_login_invalid_credentials(auth_app):
-    """
-    When the supplied API key is missing or unknown, /login must
+    """When the supplied API key is missing or unknown, /login must
     return 401 with {"error":"invalid_credentials"}.
     This executes line 21 in auth/routes.py.
     """

@@ -1,13 +1,20 @@
+"""
+Schemas for firmware API.
+
+Defines:
+- `validate_semver`: custom validator for semantic versions.
+- `LatestFirmwareQuerySchema`: for querying the latest firmware.
+- `FirmwareMetaDataSchema`: for serializing firmware metadata.
+"""
+
 import semver
 from marshmallow import Schema, ValidationError, fields
 
 
 def validate_semver(value: str) -> None:
-    """
-    Ensure the string is a valid semantic version.
+    """Ensure the string is a valid semantic version.
     Raises ValidationError otherwise.
     """
-
     try:
         semver.VersionInfo.parse(value)
     except ValueError:
@@ -15,22 +22,21 @@ def validate_semver(value: str) -> None:
 
 
 class LatestFirmwareQuerySchema(Schema):
-    """
-    Schema for GET /<project>/<device_type>/latest?current=<version>
+    """Schema for GET /<project>/<device_type>/latest?current=<version>
     """
 
     current = fields.Str(
         required=False,
         validate=validate_semver,
         metadata={
-            "description": "Your current firmware version (semver); service will return the next higher release."
+            "description": "Your current firmware version (semver); "
+            "service will return the next higher release."
         },
     )
 
 
 class FirmwareMetaDataSchema(Schema):
-    """
-    Serialize the FirmwareMetaData dataclass into JSON.
+    """Serialize the FirmwareMetaData dataclass into JSON.
     """
 
     project = fields.Str(required=True)

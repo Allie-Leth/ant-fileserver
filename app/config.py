@@ -8,8 +8,7 @@ class ConfigurationError(Exception):
     """Raised when a required configuration is missing or invalid."""
 
 class BaseConfig:
-    """
-    BaseConfig
+    """BaseConfig
 
     Loads environment-driven settings into a Flask app’s `config` object.
     Defines each config key’s default, required flag, and JSON/coercion logic.
@@ -34,8 +33,7 @@ class BaseConfig:
 
     @classmethod
     def init_app(cls, app):
-        """
-        Called at runtime after Flask has loaded the class into app.config.
+        """Called at runtime after Flask has loaded the class into app.config.
         Resolves each entry in _CONFIG_SPEC via get_config, applies JSON decoding
         or boolean coercion, and injects into app.config.
         """
@@ -65,16 +63,14 @@ class BaseConfig:
 
 
 class DevelopmentConfig(BaseConfig):
-    """
-    DevelopmentConfig
+    """DevelopmentConfig
 
     Uses BaseConfig defaults; intended for local or development environments.
     """
 
 
 class ProductionConfig(BaseConfig):
-    """
-    ProductionConfig
+    """ProductionConfig
 
     Uses BaseConfig defaults; intended for production deployments.
     """

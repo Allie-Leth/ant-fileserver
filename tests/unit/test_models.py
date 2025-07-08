@@ -49,8 +49,7 @@ def test_metadata_version_validation():
 
 
 def test_from_dict_parses_offset_date():
-    """
-    release_date without trailing 'Z' should be parsed by the fallback
+    """release_date without trailing 'Z' should be parsed by the fallback
     branch (line 53).  We use an explicit UTC+02:00 offset to be sure.
     """
     data = {

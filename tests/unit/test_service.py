@@ -204,8 +204,7 @@ def test_get_latest_no_current_arg(svc):
 
 
 def test_list_skips_bad_metadata(svc):
-    """
-    Put a metadata.json object that contains INVALID JSON.
+    """Put a metadata.json object that contains INVALID JSON.
     list_firmware should not crash; it should log & skip (lines 88-93).
     """
     bad_key = "releases/p/d/1.0.0/metadata.json"
@@ -230,8 +229,7 @@ def test_get_latest_fallback_to_latest(svc):
 
 
 def test_upload_s3_client_error(monkeypatch, svc):
-    """
-    Force svc.upload_firmware to hit the except-ClientError branch
+    """Force svc.upload_firmware to hit the except-ClientError branch
     (lines 190-192) and raise StorageError.
     """
     # any call to put_object should raise the AWS client error
