@@ -114,12 +114,15 @@ def fake_service(monkeypatch):
 
 
 @pytest.fixture()
-def client(_fake_service):
-    """Provide a Flask test client with the fake service injected."""
+def client(fake_service):
+    """Flask test‐client with our fake service injected."""
+    from app import create_app
+
     app_ = create_app("development")  # DEBUG true simplifies traceback
     with app_.test_client() as c:
+        # Inject our fake_service into all firmware endpoints
         for rule in app_.url_map.iter_rules():
             if rule.endpoint.startswith("firmware."):
                 rule.defaults = rule.defaults or {}
-                rule.defaults["svc"] = _fake_service
+                rule.defaults["svc"] = fake_service
         yield c
