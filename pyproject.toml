@@ -4,18 +4,12 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = [
-  "F",    # pyflakes
-  "E",    # pycodestyle
-  "B",    # bugbear
-  "C4",   # comprehensions
-  "I",    # import-order
-  "UP",   # pyupgrade
-  "ARG",  # unused-arguments
-  "D",    # docstrings
-  "PL",   # available Pylint ports
+  "F", "E", "B", "C4", "I", "UP", "ARG", "D", "PL"
 ]
-ignore = ["E501"]    # let Black handle line length
+ignore = ["E501"]
 
+[tool.ruff.lint.pydocstyle]
+convention = "google"
 [tool.black]
 line-length = 88
 target-version = ["py312"]
