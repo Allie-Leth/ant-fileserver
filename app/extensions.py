@@ -1,5 +1,4 @@
-"""
-Flask extension instances.
+"""Flask extension instances.
 
 Provides:
 - `jwt`: JWTManager for handling JSON Web Tokens.
