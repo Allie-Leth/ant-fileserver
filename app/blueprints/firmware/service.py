@@ -1,3 +1,10 @@
+"""
+FirmwareService module.
+
+Provides `FirmwareService`, an S3‐backed service for listing, uploading,
+and retrieving firmware metadata via boto3 and semver.
+"""
+
 import base64
 import datetime
 import hashlib
