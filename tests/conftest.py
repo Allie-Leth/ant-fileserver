@@ -93,14 +93,14 @@ def fake_service(monkeypatch):
                 payload["version"]
             )
 
-    svc = _Fake()
+    fake_svc = _Fake()
 
     # Monkey-patch the service instance the app factory would create
     import app
 
-    monkeypatch.setattr(app, "FirmwareService", lambda *a, **kw: svc)
+    monkeypatch.setattr(app, "FirmwareService", lambda *a, **kw: fake_svc)
 
-    return svc
+    return fake_svc
 
 
 @pytest.fixture()
