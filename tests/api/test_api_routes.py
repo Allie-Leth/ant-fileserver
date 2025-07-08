@@ -1,4 +1,3 @@
-# tests/api/test_api_routes.py
 import base64
 
 import pytest
