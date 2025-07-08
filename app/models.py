@@ -1,3 +1,11 @@
+"""
+Firmware metadata model.
+
+Defines `FirmwareMetaData`, an immutable dataclass representing firmware
+details (version, checksum, release info) with helpers to serialize and
+deserialize to/from JSON-friendly dicts.
+"""
+
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
