@@ -1,3 +1,12 @@
+"""Unit tests for error handler registration.
+
+Covers:
+  - Mapping of domain-specific exceptions to HTTP statuses and tags.
+  - Fallback handling for unexpected exceptions.
+"""
+
+from http import HTTPStatus
+
 import pytest
 from flask import Flask
 from werkzeug.exceptions import NotFound
@@ -16,6 +25,8 @@ from app.errors import (
 
 # Helper: tiny throw-route factory
 def make_throw_route(app, rule, exc):
+    """Register a route on `app` at `rule` that always raises `exc`."""
+
     @app.route(rule)
     def _route():
         raise exc
@@ -36,6 +47,7 @@ def make_throw_route(app, rule, exc):
     ],
 )
 def test_domain_errors_mapped(exc_cls, exp):
+    """Each domain error should map to its configured HTTP status code and tag."""
     app = Flask(__name__)
     register_error_handlers(app)
     make_throw_route(app, "/", exc_cls)
@@ -52,17 +64,17 @@ def test_domain_errors_mapped(exc_cls, exp):
 
 # Unexpected / non-domain errors → 500
 def test_unexpected_error():
+    """Unexpected exceptions use their own HTTPException code or default to 500."""
     app = Flask(__name__)
     register_error_handlers(app)
     app.config["DEBUG"] = True
 
-    # route raises Werkzeug's 404 *manually* so we know it's not in our map
     make_throw_route(app, "/boom", NotFound("manual - not mapped"))
 
     with app.test_client() as c:
         res = c.get("/boom")
         body = res.get_json()
 
-    assert res.status_code == 404  # because NotFound carries .code = 404
+    assert res.status_code == HTTPStatus.NOT_FOUND
     assert body["error"] == "unexpected_error"
     assert "manual - not mapped" in body["message"]
