@@ -74,13 +74,11 @@ def svc():
 @pytest.fixture()
 def fake_service(monkeypatch):
     """Inject a fake FirmwareService implementation into the app factory."""
-
     class _Fake:
         def __init__(self):
             self._store = {("acme", "widget"): ["1.0.0", "2.0.0"]}
 
         def list_firmware(self, project, device_type):
-            """Return FirmwareMetaData objects for stored versions."""
             return [
                 FirmwareMetaData(
                     project=project,
@@ -93,23 +91,21 @@ def fake_service(monkeypatch):
                 for v in self._store.get((project, device_type), [])
             ]
 
-        # keep signature expected by real service; underscore marks “unused”
-        def get_latest(self, project, device_type, _current_version=None):
-            """Return newest FirmwareMetaData."""
+        def get_latest(self, project, device_type, current_version=None):  # noqa: ARG002
+            """Return newest FirmwareMetaData (ignores *current_version* in fake)."""
             return self.list_firmware(project, device_type)[-1]
 
         def generate_presigned_url(self, project, device_type, version, **_):
-            """Return dummy download URL."""
             return f"https://dummy/{project}/{device_type}/{version}/f.bin"
 
         def upload_firmware(self, project, device_type, payload):
-            """Add new firmware version to in-memory store."""
             self._store.setdefault((project, device_type), []).append(
                 payload["version"]
             )
 
     fake_svc = _Fake()
-    monkeypatch.setattr(app, "FirmwareService")
+    # <— overwrite the real service factory in the app module
+    monkeypatch.setattr(app, "FirmwareService", lambda *_, **__: fake_svc)
     return fake_svc
 
 
