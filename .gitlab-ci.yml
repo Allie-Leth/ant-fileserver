@@ -114,5 +114,5 @@ build-image:
     - podman login --tls-verify=false -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$INTERNAL_REGISTRY"
     - podman build --pull -t "$INTERNAL_IMAGE:$CI_COMMIT_SHA" .
     - podman tag "$INTERNAL_IMAGE:$CI_COMMIT_SHA" "$INTERNAL_IMAGE:latest"
-    - podman push "$INTERNAL_IMAGE:latest"
+    - podman push --tls-verify=false "$INTERNAL_IMAGE:latest"
   needs: [integration-test]
