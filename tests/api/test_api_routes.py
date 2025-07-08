@@ -6,6 +6,7 @@ Covers:
 """
 
 import base64
+from http import HTTPStatus
 
 import pytest
 from flask_jwt_extended import create_access_token
@@ -16,12 +17,10 @@ API_KEY = "dev-key"
 # --------------------------------------------------------------------------- #
 #  Auth
 # --------------------------------------------------------------------------- #
-
-
 def test_login_and_access_token(client):
     """POST /auth/login returns 200 and a valid JWT access token."""
     res = client.post("/api/v1/auth/login", json={"api_key": API_KEY})
-    assert res.status_code == 200
+    assert res.status_code == HTTPStatus.OK
     token = res.get_json()["access_token"]
     assert token.startswith("ey")  # looks like JWT
 
@@ -45,14 +44,14 @@ def jwt_headers(client):
 def test_firmware_list(client, jwt_headers):
     """GET /firmware/<project>/<device_type> returns 200 and the first version."""
     res = client.get("/api/v1/firmware/acme/widget", headers=jwt_headers)
-    assert res.status_code == 200
+    assert res.status_code == HTTPStatus.OK
     assert res.get_json()[0]["version"] == "1.0.0"
 
 
 def test_latest_with_url(client, jwt_headers):
     """GET /firmware/.../latest returns 200 and includes a presigned download_url."""
     res = client.get("/api/v1/firmware/acme/widget/latest", headers=jwt_headers)
-    assert res.status_code == 200
+    assert res.status_code == HTTPStatus.OK
     assert res.get_json()["download_url"].startswith("https://dummy")
 
 
@@ -66,14 +65,13 @@ def test_upload_requires_role(client):
 
     res = client.post(
         "/api/v1/firmware/acme/widget/upload",
-        #   ↓ put the token in JSON because app expects it there first
         json={
-            "access_token": bad_token,  # ← critical
+            "access_token": bad_token,
             "version": "3.0.0",
             "firmware_b64": base64.b64encode(b"x").decode(),
         },
     )
-    assert res.status_code == 403
+    assert res.status_code == HTTPStatus.FORBIDDEN
 
 
 def test_successful_upload(client):
@@ -95,7 +93,7 @@ def test_successful_upload(client):
             "firmware_b64": base64.b64encode(b"x").decode(),
         },
     )
-    assert res.status_code == 204
+    assert res.status_code == HTTPStatus.NO_CONTENT
 
     # verify new version is latest
     latest = client.get("/api/v1/firmware/acme/widget/latest")
