@@ -1,5 +1,4 @@
-"""
-Configuration utilities.
+"""Configuration utilities.
 
 Provides `get_config()` for loading settings from environment variables or files,
 and `ConfigurationError` for reporting missing or invalid configurations.
@@ -14,12 +13,14 @@ from ._env import get_config
 class ConfigurationError(Exception):
     """Raised when a required configuration is missing or invalid."""
 
+
 class BaseConfig:
     """BaseConfig
 
     Loads environment-driven settings into a Flask app’s `config` object.
     Defines each config key’s default, required flag, and JSON/coercion logic.
     """
+
     # STORAGE Settings
     _CONFIG_SPEC = {
         "STORAGE_ENDPOINT": ("STORAGE_ENDPOINT", None, True, False),
