@@ -1,22 +1,29 @@
+"""Firmware blueprint routes.
+
+Endpoints for listing all firmware, retrieving the next/latest firmware,
+and uploading new firmware for a given project and device type.
+"""
+
 import dataclasses
 
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_jwt, jwt_required
 from marshmallow import ValidationError
 
-from app.models import FirmwareMetaData
-
-from .schema import (
+from app.blueprints.firmware.schema import (
     FirmwareMetaDataSchema,
     LatestFirmwareQuerySchema,
 )
+from app.models import FirmwareMetaData
 
 firmware_bp = Blueprint("firmware", __name__)
 
 
 @firmware_bp.route("/<project>/<device_type>", methods=["GET"])
 def list_all(project: str, device_type: str, svc):
-    """GET /api/v1/firmware/<project>/<device_type>
+    """List all firmware metadata for a project and device type.
+
+    GET /api/v1/firmware/<project>/<device_type>
     Returns a list of all firmware metadata (no download URLs).
     """
     # No query params, just list all versions
@@ -42,8 +49,10 @@ def list_all(project: str, device_type: str, svc):
 
 @firmware_bp.route("/<project>/<device_type>/latest", methods=["GET"])
 def get_latest(project: str, device_type: str, svc):
-    """GET /api/v1/firmware/<project>/<device_type>/latest?current=<semver>
-    Returns the next firmware after `current`, or the latest if none specified.
+    """Get the next firmware after `current`, or the latest if none specified.
+
+    GET /api/v1/firmware/<project>/<device_type>/latest?current=<semver>
+    Returns the next firmware after `current`, or the latest if up-to-date.
     """
     try:
         # Validate query string
@@ -72,9 +81,11 @@ def get_latest(project: str, device_type: str, svc):
 @firmware_bp.post("/<project>/<device_type>/upload")
 @jwt_required()
 def upload(project: str, device_type: str, svc):
-    """POST /api/v1/firmware/<project>/<device_type>/upload
-    Body: JSON described in FirmwareService.upload_firmware().
-    Requires 'uploader' role.
+    """Upload a new firmware binary and metadata.
+
+    POST /api/v1/firmware/<project>/<device_type>/upload
+    Body: JSON as defined by `FirmwareService.upload_firmware()`.
+    Requires the 'uploader' role in your JWT.
     """
     identity = get_jwt()
     if "uploader" not in identity["roles"]:
