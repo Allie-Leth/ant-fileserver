@@ -1,8 +1,20 @@
 [tool.ruff]
-line-length = 88           # match Black default
+line-length    = 88
 target-version = "py312"
-extend-select = ["B", "C4", "I", "UP"]   # flake-bugbear, comprehensions, import-order, pyupgrade
-ignore = ["E501"]          # long lines handled by Black
+
+[tool.ruff.lint]
+select = [
+  "F",    # pyflakes
+  "E",    # pycodestyle
+  "B",    # bugbear
+  "C4",   # comprehensions
+  "I",    # import-order
+  "UP",   # pyupgrade
+  "ARG",  # unused-arguments
+  "D",    # docstrings
+  "PL",   # available Pylint ports
+]
+ignore = ["E501"]    # let Black handle line length
 
 [tool.black]
 line-length = 88
