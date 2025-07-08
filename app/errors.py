@@ -10,14 +10,8 @@ logger = logging.getLogger(__name__)
 class FirmwareError(Exception):
     """Base class for all firmware-related errors."""
 
-    pass
-
-
 class DeviceNotFoundError(FirmwareError):
     """Raised when a device is not found."""
-
-    pass
-
 
 class DuplicateVersionError(FirmwareError):
     """Attempted to upload a version that already exists."""
@@ -30,13 +24,10 @@ class ChecksumMismatchError(FirmwareError):
 class VersionNotFoundError(FirmwareError):
     """Raised when a specific firmware version is not found."""
 
-    pass
-
 
 class StorageError(FirmwareError):
     """Raised when S3/List or JSON parsing fails in a non-recoverable way."""
 
-    pass
 
 
 # Error Config
