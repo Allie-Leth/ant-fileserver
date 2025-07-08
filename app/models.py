@@ -58,6 +58,7 @@ class FirmwareMetaData:
 
     # run-time validation hook
     def __post_init__(self):
+        """Validate that `metadata_version` is supported (only version 1)."""
         allowed = {1}
         if self.metadata_version not in allowed:
             raise ValueError(
