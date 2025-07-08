@@ -1,3 +1,12 @@
+"""
+Flask extension instances.
+
+Provides:
+- `jwt`: JWTManager for handling JSON Web Tokens.
+- `cors`: CORS for cross-origin resource sharing support.
+- `limiter`: Limiter for rate limiting with default thresholds.
+"""
+
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flask_limiter import Limiter
