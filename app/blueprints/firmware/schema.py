@@ -23,9 +23,7 @@ def validate_semver(value: str) -> None:
 
 
 class LatestFirmwareQuerySchema(Schema):
-    """Query-string schema for
-    `GET /<project>/<device_type>/latest?current=<version>`.
-    """
+    """Query-string schema for `GET /<project>/<device_type>/latest?current=<version>`."""
 
     current = fields.Str(
         required=False,
