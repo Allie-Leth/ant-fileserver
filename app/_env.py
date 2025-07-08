@@ -1,5 +1,4 @@
-"""
-Configuration utilities.
+"""Configuration utilities.
 
 Provides `get_config()` for loading settings from environment variables
 or files, and the `ConfigurationError` exception for reporting failures.
@@ -24,6 +23,7 @@ def get_config(
     allow_file: bool = True,
 ) -> Any:
     """Load a config value by:
+
       1) ENV:        os.getenv(name)
       2) ENV file:  if allow_file and os.getenv(name + "_FILE"), read that file
       3) DEFAULT:    default
