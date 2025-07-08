@@ -22,7 +22,7 @@ def get_config(
     cast: Callable[[str], Any] = lambda x: x,
     allow_file: bool = True,
 ) -> Any:
-    """Load a config value by:
+    """Load a config value.
 
       1) ENV:        os.getenv(name)
       2) ENV file:  if allow_file and os.getenv(name + "_FILE"), read that file
