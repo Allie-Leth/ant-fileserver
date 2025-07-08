@@ -1,0 +1,118 @@
+########################################
+#      GLOBAL CONFIG & VARIABLES
+########################################
+stages:
+  - lint
+  - unit
+  - api
+  - integration
+  - build
+
+variables:
+  INTERNAL_REGISTRY: gitlab-registry.gitlab.svc.cluster.local:5000
+  INTERNAL_IMAGE: $INTERNAL_REGISTRY/$CI_PROJECT_PATH
+
+default:
+  image: python:3.12-slim
+
+.lint_base: &lint_base
+  image: python:3.12-slim
+  before_script:
+    - pip install --no-cache-dir ruff
+
+# ── Full dev dependencies for pytest & moto
+.test_base: &test_base
+  before_script:
+    - pip install --no-cache-dir -r requirements.txt
+    - pip install --no-cache-dir -r requirements-dev.txt
+  artifacts:
+    expire_in: 1 week
+    when: always
+
+
+########################################
+#     TEMPLATE FOR PRODUCTION JOBS
+########################################
+.default_prod: &prod
+  tags: ["k3s", "prod"]
+  image: quay.io/containers/aio:v2025.07.02
+  variables:
+    BUILDAH_ISOLATION: chroot
+    STORAGE_DRIVER: vfs
+
+########################################
+#            LINT STAGE
+########################################
+lint:
+  <<: *lint_base
+  stage: lint
+  script:
+    - ruff check .
+
+########################################
+#            UNIT TESTS
+########################################
+unit-test:
+  <<: *test_base
+  stage: unit
+  variables:
+    PYTHONPATH: "$CI_PROJECT_DIR"
+  script:
+    - pytest tests/unit
+  needs: [lint]
+
+########################################
+#              API TESTS
+########################################
+api-test:
+  <<: *test_base
+  stage: api
+  variables:
+    PYTHONPATH: "$CI_PROJECT_DIR"
+    STORAGE_ENDPOINT: http://dummy
+    STORAGE_BUCKET: firmware
+    STORAGE_ACCESS_KEY_ID: dummy
+    STORAGE_SECRET_ACCESS_KEY: dummy
+    STORAGE_REGION: us-east-1
+  script:
+    - pytest tests/api
+  needs: [unit-test]
+
+########################################
+#        INTEGRATION TESTS (MinIO)
+########################################
+integration-test:
+  <<: *test_base
+  stage: integration
+  services:
+    - name: minio/minio:latest
+      alias: minio
+      command: ["server","/data","--console-address",":9001"]
+  variables:
+    PYTHONPATH: "$CI_PROJECT_DIR"
+    STORAGE_ENDPOINT: http://minio:9000
+    STORAGE_BUCKET: firmware
+    STORAGE_ACCESS_KEY_ID: minioadmin
+    STORAGE_SECRET_ACCESS_KEY: minioadmin
+    STORAGE_REGION: us-east-1
+  script:
+    - pytest tests/integration
+  needs: [api-test]
+
+########################################
+#        BUILD & PUSH IMAGE
+########################################
+build-image:
+  extends: .default_prod
+  stage: build
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: always
+    - if: '$CI_COMMIT_BRANCH != "main"'
+      when: never
+  script:
+    - podman login --tls-verify=false -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$INTERNAL_REGISTRY"
+    - podman build --pull -t "$INTERNAL_IMAGE:$CI_COMMIT_SHA" .
+    - podman tag "$INTERNAL_IMAGE:$CI_COMMIT_SHA" "$INTERNAL_IMAGE:latest"
+    - podman push "$INTERNAL_IMAGE:latest"
+  needs: [integration-test]

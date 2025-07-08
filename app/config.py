@@ -1,31 +1,50 @@
+"""Configuration utilities.
+
+Provides `get_config()` for loading settings from environment variables or files,
+and `ConfigurationError` for reporting missing or invalid configurations.
+"""
+
 import json
-from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Any
+
 from ._env import get_config
+
 
 class ConfigurationError(Exception):
     """Raised when a required configuration is missing or invalid."""
-    pass
+
 
 class BaseConfig:
+    """BaseConfig.
+
+    Loads environment-driven settings into a Flask app’s `config` object.
+    Defines each config key’s default, required flag, and JSON/coercion logic.
+    """
+
     # STORAGE Settings
     _CONFIG_SPEC = {
-        "STORAGE_ENDPOINT":       ("STORAGE_ENDPOINT",       None,                               True,  False),
-        "STORAGE_BUCKET":         ("STORAGE_BUCKET",         None,                               True,  False),
-        "STORAGE_REGION":         ("STORAGE_REGION",         "us-east-1",                        False, False),
-        "STORAGE_ACCESS_KEY_ID":  ("STORAGE_ACCESS_KEY_ID",  None,                               True,  False),
-        "STORAGE_SECRET_ACCESS_KEY":("STORAGE_SECRET_ACCESS_KEY", None,                          True,  False),
-        "JWT_SECRET_KEY":         ("JWT_SECRET_KEY",         None,                               True,  False),
-        "API_KEY_ROLES":          ("API_KEY_ROLES",          '{"dev-key":["admin","uploader"]}', False, True),
-        "LOG_LEVEL":              ("LOG_LEVEL",              "INFO",                               False, False),
-        "DEBUG":                  ("DEBUG",                  "False",                            False, False),
+        "STORAGE_ENDPOINT": ("STORAGE_ENDPOINT", None, True, False),
+        "STORAGE_BUCKET": ("STORAGE_BUCKET", None, True, False),
+        "STORAGE_REGION": ("STORAGE_REGION", "us-east-1", False, False),
+        "STORAGE_ACCESS_KEY_ID": ("STORAGE_ACCESS_KEY_ID", None, True, False),
+        "STORAGE_SECRET_ACCESS_KEY": ("STORAGE_SECRET_ACCESS_KEY", None, True, False),
+        "JWT_SECRET_KEY": ("JWT_SECRET_KEY", None, True, False),
+        "API_KEY_ROLES": (
+            "API_KEY_ROLES",
+            '{"dev-key":["admin","uploader"]}',
+            False,
+            True,
+        ),
+        "LOG_LEVEL": ("LOG_LEVEL", "INFO", False, False),
+        "DEBUG": ("DEBUG", "False", False, False),
     }
 
     @classmethod
     def init_app(cls, app):
-        """
-        Called at runtime after Flask has loaded the class into the app.config
-        All get_config calls and validations should be done here.
+        """Called at runtime after Flask has loaded the class into app.config.
+
+        Resolves each entry in _CONFIG_SPEC via get_config, applies JSON decoding
+        or boolean coercion, and injects into app.config.
         """
         for env_var, (conf_key, default, required, is_json) in cls._CONFIG_SPEC.items():
             raw = get_config(env_var, default=default, required=required)
@@ -33,15 +52,15 @@ class BaseConfig:
                 try:
                     val: Any = json.loads(raw)
                 except json.JSONDecodeError as e:
-                    raise ConfigurationError(f"Invalid JSON in {env_var}: {e}")
+                    raise ConfigurationError(f"Invalid JSON in {env_var}: {e}") from e
             elif conf_key == "DEBUG":
                 # coerce boolean-ish strings
-                val = str(raw).lower() in ("1","true","yes","on")
+                val = str(raw).lower() in ("1", "true", "yes", "on")
             else:
                 val = raw
 
             app.config[conf_key] = val
-        
+
         app.logger.info(
             "[Config %s] endpoint=%r bucket=%r API-keys=%d debug=%s",
             cls.__name__,
@@ -49,16 +68,24 @@ class BaseConfig:
             app.config["STORAGE_BUCKET"],
             len(app.config["API_KEY_ROLES"]),
             app.config["DEBUG"],
-            )
+        )
 
 
 class DevelopmentConfig(BaseConfig):
-    pass
+    """DevelopmentConfig.
+
+    Uses BaseConfig defaults; intended for local or development environments.
+    """
+
 
 class ProductionConfig(BaseConfig):
-    pass
+    """ProductionConfig.
 
-config_map: Dict[str, type[BaseConfig]] = {
+    Uses BaseConfig defaults; intended for production deployments.
+    """
+
+
+config_map: dict[str, type[BaseConfig]] = {
     "development": DevelopmentConfig,
     "production": ProductionConfig,
     "default": DevelopmentConfig,  # Fallback if no env var set
