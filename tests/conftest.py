@@ -1,29 +1,53 @@
-import importlib
+# ruff: noqa: I001,E402   # ignore “imports not at top” and “un-sorted import block”
+# pylint: disable=import-outside-toplevel
+
+"""Pytest fixtures for testing FirmwareService with moto and Flask app factory."""
+
 import json
+import os
+import sys
+from datetime import UTC, datetime
+from pathlib import Path
+
 import boto3
 import pytest
-from datetime import datetime, timezone
 from moto import mock_aws
-from types import SimpleNamespace
-from flask_jwt_extended import create_access_token
 
-from app.blueprints.firmware.service import FirmwareService, FirmwareMetaData
+# Allow importing app when tests run outside project root
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+# ruff: noqa: E402  ── imports below rely on sys.path tweak above
+import app  # noqa: E402
+from app import create_app  # noqa: E402
+from app.blueprints.firmware.service import (  # noqa: E402
+    FirmwareMetaData,
+    FirmwareService,
+)
 
 _BUCKET = "firmware"
 
 
+@pytest.fixture(autouse=True, scope="session")
+def dummy_app_env():
+    """Set environment variables needed for all tests."""
+    os.environ.setdefault("JWT_SECRET_KEY", "test-secret")
+    os.environ.setdefault("STORAGE_ENDPOINT", "http://dummy")
+    os.environ.setdefault("STORAGE_BUCKET", "firmware")
+    os.environ.setdefault("STORAGE_ACCESS_KEY_ID", "x")
+    os.environ.setdefault("STORAGE_SECRET_ACCESS_KEY", "y")
+    os.environ.setdefault("STORAGE_REGION", "us-east-1")
+
 
 @pytest.fixture(scope="function")
 def svc():
-    """FirmwareService wired to moto’s in-memory S3 with a test bucket."""
+    """Provide a FirmwareService connected to moto’s in-memory S3 with seeded data."""
     with mock_aws():
-        client = boto3.client("s3", region_name="us-east-1")
-        client.create_bucket(Bucket=_BUCKET)
+        s3_client = boto3.client("s3", region_name="us-east-1")  # renamed
+        s3_client.create_bucket(Bucket=_BUCKET)
 
-        # seed two releases
         for ver in ("1.0.0", "2.0.0"):
             prefix = f"releases/acme/widget/{ver}/"
-            client.put_object(
+            s3_client.put_object(
                 Bucket=_BUCKET,
                 Key=prefix + "metadata.json",
                 Body=json.dumps(
@@ -46,16 +70,14 @@ def svc():
             region="us-east-1",
         )
 
+
 @pytest.fixture()
 def fake_service(monkeypatch):
-    """In-memory stand-in that mimics FirmwareService API."""
+    """Inject a fake FirmwareService implementation into the app factory."""
     class _Fake:
         def __init__(self):
-            self._store = {
-                ("acme", "widget"): ["1.0.0", "2.0.0"],
-            }
+            self._store = {("acme", "widget"): ["1.0.0", "2.0.0"]}
 
-        # --- methods used by blueprints ---
         def list_firmware(self, project, device_type):
             return [
                 FirmwareMetaData(
@@ -64,13 +86,13 @@ def fake_service(monkeypatch):
                     version=v,
                     checksum="x",
                     file_size=1,
-                    release_date=datetime(2025, 1, 1, tzinfo=timezone.utc),
+                    release_date=datetime(2025, 1, 1, tzinfo=UTC),
                 )
                 for v in self._store.get((project, device_type), [])
             ]
 
-        def get_latest(self, project, device_type, current_version=None):
-            versions = self._store[(project, device_type)]
+        def get_latest(self, project, device_type, current_version=None):  # noqa: ARG002
+            """Return newest FirmwareMetaData (ignores *current_version* in fake)."""
             return self.list_firmware(project, device_type)[-1]
 
         def generate_presigned_url(self, project, device_type, version, **_):
@@ -81,26 +103,20 @@ def fake_service(monkeypatch):
                 payload["version"]
             )
 
-    svc = _Fake()
-
-    # Monkey-patch the service instance the app factory would create
-    import app
-    monkeypatch.setattr(app, "FirmwareService", lambda *a, **kw: svc)
-
-    return svc
+    fake_svc = _Fake()
+    # <— overwrite the real service factory in the app module
+    monkeypatch.setattr(app, "FirmwareService", lambda *_, **__: fake_svc)
+    return fake_svc
 
 
 @pytest.fixture()
-def client(fake_service, monkeypatch):
-    """Flask test-client with our fake service injected."""
-    from app import create_app
-
-    app_ = create_app("development")   # DEBUG true simplifies traceback
+def client(fake_service):
+    """Flask test‐client with our fake service injected."""
+    app_ = create_app("development")  # DEBUG true simplifies traceback
     with app_.test_client() as c:
-        # Inject the fake service into all routes that expect 'svc'
+        # Inject our fake_service into all firmware endpoints
         for rule in app_.url_map.iter_rules():
             if rule.endpoint.startswith("firmware."):
-
-                rule.defaults = (rule.defaults or {})
+                rule.defaults = rule.defaults or {}
                 rule.defaults["svc"] = fake_service
         yield c
