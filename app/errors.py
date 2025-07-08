@@ -1,5 +1,4 @@
-"""
-Configuration utilities.
+"""Configuration utilities.
 
 Provides `get_config` for loading settings from environment variables or files,
 and `ConfigurationError` for reporting missing or invalid configurations.
@@ -17,8 +16,10 @@ logger = logging.getLogger(__name__)
 class FirmwareError(Exception):
     """Base class for all firmware-related errors."""
 
+
 class DeviceNotFoundError(FirmwareError):
     """Raised when a device is not found."""
+
 
 class DuplicateVersionError(FirmwareError):
     """Attempted to upload a version that already exists."""
@@ -36,7 +37,6 @@ class StorageError(FirmwareError):
     """Raised when S3/List or JSON parsing fails in a non-recoverable way."""
 
 
-
 # Error Config
 
 _ERROR_HANDLING = {
@@ -50,18 +50,14 @@ _ERROR_HANDLING = {
 
 
 def register_error_handlers(app):
-    """Register each domain error based on the _ERROR_HANDLING config.
-    """
+    """Register each domain error based on the _ERROR_HANDLING config."""
     for exc_cls, opts in _ERROR_HANDLING.items():
 
         def _make_handler(opts):
             def _handler(exc):
                 log_fn = getattr(logger, opts["level"])
                 # Stack trace for errors
-                log_fn(
-                    f"{opts['tag']}: {exc}",
-                    exc_info=opts["level"] == "error"
-                )
+                log_fn(f"{opts['tag']}: {exc}", exc_info=opts["level"] == "error")
                 payload = {"error": opts["tag"], "message": str(exc)}
                 return jsonify(payload), opts["Code"]
 
