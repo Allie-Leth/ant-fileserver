@@ -65,8 +65,8 @@ class FakeS3:
 
     # upload_firmware
     def put_object(
-        self, Bucket=None, Key=None, Body=None, ContentType=None, **_
-    ):  # noqa: ARG002
+        self, Bucket=None, Key=None, Body=None, ContentType=None, **_  # noqa: ARG002
+    ):
         """Store the raw Body under the given Key in memory."""
         self.objects[Key] = Body
 
@@ -266,7 +266,7 @@ def test_list_skips_bad_metadata(svc):
 
 
 def test_get_latest_fallback_to_latest(svc):
-    """get_latest() returns the highest version when current_version is None.""" ""
+    """get_latest() returns the highest version when current_version is None."""
     svc.upload_firmware("p", "d", {"version": "1.0.0", "firmware_b64": _b64(b"a")})
     svc.upload_firmware("p", "d", {"version": "2.0.0", "firmware_b64": _b64(b"b")})
 
