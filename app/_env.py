@@ -29,7 +29,7 @@ def get_config(
         file_path = os.getenv(f"{name}_FILE")
         if file_path:
             try:
-                val = Path(file_path).read_text().strip()
+                val = Path(file_path).read_text(encoding="utf-8").strip()
             except Exception as e:
                 raise ConfigurationError(
                     f"Failed to read config file {file_path}: {e}"
