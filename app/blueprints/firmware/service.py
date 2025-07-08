@@ -29,11 +29,9 @@ logger = logging.getLogger(__name__)
 
 
 class FirmwareService:
-    """Talks to any S3-compatible store via boto3,
-    using STORAGE_* credentials passed in at startup.
-    """
+    """Talks to any S3-compatible store via boto3 using STORAGE_* credentials."""
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         endpoint_url: str,
         bucket: str,
@@ -43,6 +41,7 @@ class FirmwareService:
         prefix: str = "releases",
         config_overrides: Config | None = None,
     ):
+        """Initialize the FirmwareService with its S3 client and settings."""
         # Allow overriding the botocore Config
         s3_config = config_overrides or Config(
             signature_version="s3v4",
@@ -62,9 +61,7 @@ class FirmwareService:
         self.prefix = prefix
 
     def list_firmware(self, project: str, device_type: str) -> list[FirmwareMetaData]:
-        """List all firmware metadata objects for a given project and device type,
-        sorted by semantic version.
-        """
+        """List all firmware metadata for a project/device type sorted by semantic version."""
         key_prefix = f"{self.prefix}/{project}/{device_type}/"
 
         try:
@@ -203,8 +200,9 @@ class FirmwareService:
         device_type: str,
         current_version: str | None = None,
     ) -> FirmwareMetaData:
-        """Return the next release after `current_version`,
-        or the highest version if none specified or up-to-date.
+        """Return the next release.
+
+        Returns `current_version`, or the highest version if none specified or up-to-date.
         """
         releases = self.list_firmware(project, device_type)
         if not releases:
