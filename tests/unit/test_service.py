@@ -45,6 +45,7 @@ class _FakePaginator:
         """Yield a single page listing the available object keys."""
         return [{"Contents": [{"Key": k} for k in self._objects.keys()]}]
 
+
 # pylint: disable=invalid-name, unused-argument
 class FakeS3:
     """Subset of boto3 S3 client used by FirmwareService."""
@@ -58,17 +59,19 @@ class FakeS3:
         """Return a paginator over the current in-memory objects."""
         return _FakePaginator(self.objects)
 
-    def get_object(self, Bucket=None, Key=None, **_):
+    def get_object(self, Bucket=None, Key=None, **_):  # noqa: ARG002
         """Return a fake S3 response dict with a readable Body."""
         return {"Body": _FakeBody(self.objects[Key])}
 
     # upload_firmware
-    def put_object(self, Bucket=None, Key=None, Body=None, ContentType=None, **_):
+    def put_object(
+        self, Bucket=None, Key=None, Body=None, ContentType=None, **_
+    ):  # noqa: ARG002
         """Store the raw Body under the given Key in memory."""
         self.objects[Key] = Body
-        
+
     # generate_presigned_url
-    def generate_presigned_url(self, _op, Params, ExpiresIn):
+    def generate_presigned_url(self, _op, Params, ExpiresIn):  # noqa: ARG002
         """Generate a fake presigned URL for the given operation and parameters.
 
         Return a fake presigned URL for an existing key,
@@ -78,7 +81,10 @@ class FakeS3:
         if key not in self.objects:
             raise StorageError("object missing")  # exercise error path
         return f"https://fake-s3/{key}?exp={ExpiresIn}"
+
+
 # pylint: enable=invalid-name, unused-argument
+
 
 # Pytest fixture: real service wired to FakeS3
 @pytest.fixture
