@@ -58,7 +58,10 @@ def register_error_handlers(app):
             def _handler(exc):
                 log_fn = getattr(logger, opts["level"])
                 # Stack trace for errors
-                log_fn(f"{opts['tag']}: {exc}", exc_info=(opts["level"] == "error"))
+                log_fn(
+                    f"{opts['tag']}: {exc}",
+                    exc_info=opts["level"] == "error"
+                )
                 payload = {"error": opts["tag"], "message": str(exc)}
                 return jsonify(payload), opts["Code"]
 
