@@ -1,3 +1,12 @@
+"""Unit tests for the `FirmwareMetaData` model.
+
+Covers:
+  - `from_dict` parsing of ISO8601 dates with and without trailing 'Z'
+  - default field values
+  - validation of unsupported metadata versions
+  - `to_dict` round-trip behavior
+"""
+
 from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
@@ -6,6 +15,7 @@ from app.models import FirmwareMetaData
 
 
 def test_from_dict_parses_dates_and_defaults():
+    """from_dict constructs metadata with correct datetime and default values."""
     data = {
         "project": "acme",
         "device_type": "widget",
@@ -22,6 +32,7 @@ def test_from_dict_parses_dates_and_defaults():
 
 
 def test_to_dict_roundtrip():
+    """to_dict serializes the dataclass and omits download_url when requested."""
     meta = FirmwareMetaData(
         project="acme",
         device_type="widget",
@@ -36,6 +47,7 @@ def test_to_dict_roundtrip():
 
 
 def test_metadata_version_validation():
+    """__post_init__ raises ValueError for unsupported metadata_version."""
     with pytest.raises(ValueError):
         FirmwareMetaData(
             project="acme",
@@ -49,8 +61,9 @@ def test_metadata_version_validation():
 
 
 def test_from_dict_parses_offset_date():
-    """release_date without trailing 'Z' should be parsed by the fallback
-    branch (line 53).  We use an explicit UTC+02:00 offset to be sure.
+    """release_date without trailing 'Z' should be parsed by the fallback branch (line 53).
+
+    We use an explicit UTC+02:00 offset to confirm proper parsing.
     """
     data = {
         "project": "acme",
