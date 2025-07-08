@@ -1,5 +1,4 @@
-"""
-Firmware metadata model.
+"""Firmware metadata model.
 
 Defines `FirmwareMetaData`, an immutable dataclass representing firmware
 details (version, checksum, release info) with helpers to serialize and
@@ -15,8 +14,7 @@ from typing import Any
 
 @dataclass(frozen=True)
 class FirmwareMetaData:
-    """
-    Immutable representation of firmware metadata.
+    """Immutable representation of firmware metadata.
 
     Fields:
       - project: firmware project name
@@ -35,6 +33,7 @@ class FirmwareMetaData:
       - metadata_version: schema version (default 1)
       - extra: optional dict for additional fields
     """
+
     # Core Identity
     project: str
     device_type: str
