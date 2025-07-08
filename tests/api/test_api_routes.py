@@ -1,3 +1,10 @@
+"""API route tests for the firmware service.
+
+Covers:
+- authentication endpoints
+- firmware listing, latest, and upload behavior
+"""
+
 import base64
 
 import pytest
@@ -12,6 +19,7 @@ API_KEY = "dev-key"
 
 
 def test_login_and_access_token(client):
+    """POST /auth/login returns 200 and a valid JWT access token."""
     res = client.post("/api/v1/auth/login", json={"api_key": API_KEY})
     assert res.status_code == 200
     token = res.get_json()["access_token"]
@@ -23,7 +31,7 @@ def test_login_and_access_token(client):
 # --------------------------------------------------------------------------- #
 @pytest.fixture()
 def jwt_headers(client):
-    """Real token obtained through the /auth/login endpoint."""
+    """Obtain a real access token via /auth/login for use in subsequent requests."""
     res = client.post("/api/v1/auth/login", json={"api_key": API_KEY})
     token = res.get_json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
@@ -35,18 +43,21 @@ def jwt_headers(client):
 
 
 def test_firmware_list(client, jwt_headers):
+    """GET /firmware/<project>/<device_type> returns 200 and the first version."""
     res = client.get("/api/v1/firmware/acme/widget", headers=jwt_headers)
     assert res.status_code == 200
     assert res.get_json()[0]["version"] == "1.0.0"
 
 
 def test_latest_with_url(client, jwt_headers):
+    """GET /firmware/.../latest returns 200 and includes a presigned download_url."""
     res = client.get("/api/v1/firmware/acme/widget/latest", headers=jwt_headers)
     assert res.status_code == 200
     assert res.get_json()["download_url"].startswith("https://dummy")
 
 
 def test_upload_requires_role(client):
+    """POST /upload without 'uploader' role returns 403 Forbidden."""
     with client.application.app_context():
         bad_token = create_access_token(
             identity=API_KEY,
@@ -66,6 +77,7 @@ def test_upload_requires_role(client):
 
 
 def test_successful_upload(client):
+    """POST /upload with 'uploader' role returns 204 and makes version 3.0.0 latest."""
     with client.application.app_context():
         up_token = create_access_token(
             identity=API_KEY,
@@ -91,4 +103,5 @@ def test_successful_upload(client):
 
 
 def _dump(resp):
+    """Debug helper to print status and JSON on failure."""
     print("\nDEBUG-DUMP:", resp.status_code, resp.get_json(), "\n")
