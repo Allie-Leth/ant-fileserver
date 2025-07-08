@@ -15,6 +15,26 @@ from typing import Any
 
 @dataclass(frozen=True)
 class FirmwareMetaData:
+    """
+    Immutable representation of firmware metadata.
+
+    Fields:
+      - project: firmware project name
+      - device_type: hardware type identifier
+      - version: semantic version string
+      - checksum: hex SHA-256 of binary
+      - file_size: size in bytes
+      - release_date: UTC datetime of release
+      - release_notes: optional human-readable notes
+      - checksum_algo: algorithm name (default "sha256")
+      - download_url: optional URL for download
+      - channel: release channel (e.g. "stable")
+      - mandatory: whether update is mandatory
+      - signature: optional signature blob
+      - min_bootloader: optional minimum bootloader version
+      - metadata_version: schema version (default 1)
+      - extra: optional dict for additional fields
+    """
     # Core Identity
     project: str
     device_type: str
