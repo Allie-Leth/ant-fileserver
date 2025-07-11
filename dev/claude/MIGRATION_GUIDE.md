@@ -234,7 +234,7 @@ Before creating any pull requests or deploying changes, run the comprehensive te
 
 ```bash
 # Run the comprehensive test runner
-./run_tests.sh
+./dev/claude/run_tests.sh
 
 # Manual validation commands
 source .venv/bin/activate
@@ -326,14 +326,14 @@ git checkout HEAD~1 -- k8s/app/overlays/
 git remote set-url origin http://gitlab.scopecreep.productions/ant-hive/ant-fileserver.git
 
 # 4. Verify tests still pass with GitLab configuration
-./run_tests.sh
+./dev/claude/run_tests.sh
 ```
 
 ### Migration Completion Criteria
 
 The migration is considered complete when:
 
-1. **All tests pass locally** using `./run_tests.sh`
+1. **All tests pass locally** using `./dev/claude/run_tests.sh`
 2. **GitHub Actions pipeline passes** for both CI and release workflows  
 3. **Container images build and push** to GHCR successfully
 4. **Kubernetes manifests validated** with correct GHCR references
@@ -346,4 +346,4 @@ The migration is considered complete when:
 **Migration Status**: 🔄 In Progress  
 **Last Updated**: 2025-07-11  
 **Next Steps**: Run comprehensive tests, update Kubernetes manifests, validate infrastructure integration  
-**Test Command**: `./run_tests.sh`
+**Test Command**: `./dev/claude/run_tests.sh`
