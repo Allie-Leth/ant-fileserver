@@ -74,6 +74,7 @@ def svc():
 @pytest.fixture()
 def fake_service(monkeypatch):
     """Inject a fake FirmwareService implementation into the app factory."""
+
     class _Fake:
         def __init__(self):
             self._store = {("acme", "widget"): ["1.0.0", "2.0.0"]}

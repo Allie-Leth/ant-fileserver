@@ -65,7 +65,12 @@ class FakeS3:
 
     # upload_firmware
     def put_object(
-        self, Bucket=None, Key=None, Body=None, ContentType=None, **_  # noqa: ARG002
+        self,
+        Bucket=None,
+        Key=None,
+        Body=None,
+        ContentType=None,
+        **_,  # noqa: ARG002
     ):
         """Store the raw Body under the given Key in memory."""
         self.objects[Key] = Body

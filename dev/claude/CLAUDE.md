@@ -172,6 +172,20 @@ ant-fileserver/
 
 ## Important Patterns
 
+### Complex Task Documentation Standard
+For any complex development task (migrations, major refactoring, multi-component changes), **ALWAYS** create a dedicated `{task_name}_GUIDE.md` file that includes:
+- Comprehensive analysis of current state
+- Step-by-step implementation plan
+- Validation against existing infrastructure
+- Testing procedures and requirements
+- Rollback procedures
+- Post-completion cleanup steps
+
+Examples:
+- `MIGRATION_GUIDE.md` - For GitLab to GitHub migration
+- `REFACTORING_GUIDE.md` - For major code restructuring
+- `DEPLOYMENT_GUIDE.md` - For production deployment changes
+
 ### When Adding New API Endpoints
 1. Define request/response schemas in appropriate `schema.py` file
 2. Implement business logic in service layer (`service.py`)

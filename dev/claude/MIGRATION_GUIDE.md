@@ -167,12 +167,34 @@ docker push ghcr.io/USERNAME/ant-fileserver:latest
 #### 3. Kubernetes Deployment Updates
 Update Kubernetes manifests to use new registry:
 ```yaml
-# Before
-image: gitlab-registry.gitlab.svc.cluster.local:5000/ant-hive/ant-fileserver:latest
+# Before (GitLab CI variable)
+image: $CI_REGISTRY_IMAGE
 
-# After  
-image: ghcr.io/USERNAME/ant-fileserver:latest
+# After (GitHub Container Registry)
+image: ghcr.io/allie-leth/ant-fileserver:latest
 ```
+
+**Files requiring updates:**
+- `k8s/app/overlays/dev/kustomization.yaml`
+- `k8s/app/overlays/prod/kustomization.yaml`
+
+### 4. MinIO Integration Validation
+Current MinIO infrastructure analysis:
+```bash
+# Current MinIO deployment in cluster
+kubectl get pods -n minio
+# Shows: minio-0 (Running)
+
+# Existing ant-fileserver credentials
+kubectl get secret -n minio ant-fileserver-prod-creds
+# IAM policy configured for bucket path: minio/ant-fileserver/*
+```
+
+**Storage Configuration:**
+- **Bucket**: `minio` (main bucket)
+- **Prefix**: `ant-fileserver/*` (application-specific path)
+- **Access**: Read/Write permissions via sealed secret
+- **Environment**: Production credentials already configured
 
 ## Benefits of Migration
 
@@ -205,6 +227,123 @@ image: ghcr.io/USERNAME/ant-fileserver:latest
 
 ---
 
+## Comprehensive Testing & Validation
+
+### Pre-Migration Testing Requirements
+Before creating any pull requests or deploying changes, run the comprehensive test suite:
+
+```bash
+# Run the comprehensive test runner
+./run_tests.sh
+
+# Manual validation commands
+source .venv/bin/activate
+
+# 1. Code Quality
+ruff check app/ tests/
+ruff format --check app/ tests/
+
+# 2. Unit Tests
+python -m pytest tests/unit/ -v --cov=app
+
+# 3. API Tests  
+export PYTHONPATH="$PWD"
+export STORAGE_ENDPOINT="http://dummy"
+export STORAGE_BUCKET="firmware" 
+export STORAGE_ACCESS_KEY_ID="dummy"
+export STORAGE_SECRET_ACCESS_KEY="dummy"
+export STORAGE_REGION="us-east-1"
+export JWT_SECRET_KEY="test-secret"
+python -m pytest tests/api/ -v
+
+# 4. Integration Tests (with MinIO)
+./scripts/dev-integration.sh
+
+# 5. Container Build
+docker build -t ant-fileserver:test .
+```
+
+### Infrastructure Validation
+Validate against current MinIO infrastructure:
+
+```bash
+# Check MinIO is running
+kubectl get pods -n minio
+kubectl get svc -n minio
+
+# Verify ant-fileserver credentials exist
+kubectl get secret -n minio ant-fileserver-prod-creds -o yaml
+
+# Check IAM policy configuration
+kubectl get configmap -n minio iam-ant-fileserver-policy -o yaml
+
+# Test connectivity (from within cluster)
+kubectl run temp-test --rm -i --tty --image=curlimages/curl -- sh
+# curl http://minio.minio.svc.cluster.local:9000/minio/health/ready
+```
+
+### Post-Migration Validation Checklist
+
+#### ✅ Local Development
+- [ ] Virtual environment activated and dependencies installed
+- [ ] All tests pass (unit, API, integration)
+- [ ] Code quality checks pass (ruff, formatting)
+- [ ] Container builds successfully
+- [ ] Integration tests with MinIO pass
+
+#### ✅ GitHub Repository
+- [ ] All branches pushed to GitHub
+- [ ] GitHub Actions workflows syntax valid
+- [ ] Repository secrets configured (if needed)
+- [ ] Branch protection rules configured
+
+#### ✅ Kubernetes Integration
+- [ ] Kubernetes manifests updated with GHCR references
+- [ ] Container image references point to `ghcr.io/allie-leth/ant-fileserver`
+- [ ] MinIO credentials and policies remain unchanged
+- [ ] Application can connect to existing MinIO instance
+
+#### ✅ CI/CD Pipeline
+- [ ] GitHub Actions workflow triggers correctly
+- [ ] All pipeline stages pass (lint, test, build, security)
+- [ ] Container images build and push to GHCR
+- [ ] Multi-platform builds work (AMD64, ARM64)
+
+### Rollback Procedures
+
+If migration issues occur:
+
+```bash
+# 1. Revert to GitLab CI (if needed)
+cp .archived/gitlab-ci.yml.backup .gitlab-ci.yml
+git add .gitlab-ci.yml
+git commit -m "revert: restore GitLab CI temporarily"
+
+# 2. Revert Kubernetes manifests
+git checkout HEAD~1 -- k8s/app/overlays/
+
+# 3. Switch back to GitLab remote
+git remote set-url origin http://gitlab.scopecreep.productions/ant-hive/ant-fileserver.git
+
+# 4. Verify tests still pass with GitLab configuration
+./run_tests.sh
+```
+
+### Migration Completion Criteria
+
+The migration is considered complete when:
+
+1. **All tests pass locally** using `./run_tests.sh`
+2. **GitHub Actions pipeline passes** for both CI and release workflows  
+3. **Container images build and push** to GHCR successfully
+4. **Kubernetes manifests validated** with correct GHCR references
+5. **MinIO integration confirmed** with existing infrastructure
+6. **Documentation updated** and reviewed
+7. **Team trained** on new GitHub workflow
+
+---
+
 **Migration Status**: 🔄 In Progress  
 **Last Updated**: 2025-07-11  
-**Next Steps**: Repository URL updates and production deployment configuration
+**Next Steps**: Run comprehensive tests, update Kubernetes manifests, validate infrastructure integration  
+**Test Command**: `./run_tests.sh`
