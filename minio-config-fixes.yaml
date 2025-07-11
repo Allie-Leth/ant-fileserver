@@ -1,0 +1,145 @@
+# MinIO Configuration Fixes for Ant Fileserver
+# These should be applied to the GitOps repository at /home/leth/gitops/infra/minio/overlay/prod/
+
+---
+# Updated IAM policy to work with existing bucket structure
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: iam-ant-fileserver-policy
+  namespace: minio
+data:
+  ant-fileserver.json: |
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Sid": "AntFileserverRW",
+          "Effect": "Allow",
+          "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
+          "Resource": [
+            "arn:aws:s3:::minio/ant-fileserver/*",
+            "arn:aws:s3:::minio-dev/ant-fileserver/*", 
+            "arn:aws:s3:::minio-staging/ant-fileserver/*"
+          ]
+        },
+        {
+          "Sid": "AntFileserverList",
+          "Effect": "Allow",
+          "Action": "s3:ListBucket",
+          "Resource": [
+            "arn:aws:s3:::minio",
+            "arn:aws:s3:::minio-dev",
+            "arn:aws:s3:::minio-staging"
+          ],
+          "Condition": {
+            "StringLike": { "s3:prefix": ["ant-fileserver/*"] }
+          }
+        }
+      ]
+    }
+
+---
+# Job to create missing minio bucket (if needed)
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: create-minio-bucket
+  namespace: minio
+spec:
+  template:
+    spec:
+      containers:
+      - name: mc-client
+        image: minio/mc:latest
+        command:
+        - /bin/sh
+        - -c
+        - |
+          # Configure mc alias
+          mc alias set local http://minio.minio.svc.cluster.local:9000 $MINIO_ROOT_USER $MINIO_ROOT_PASSWORD
+          
+          # Create bucket if it doesn't exist
+          mc mb local/minio --ignore-existing
+          
+          echo "Bucket creation completed"
+        env:
+        - name: MINIO_ROOT_USER
+          valueFrom:
+            secretKeyRef:
+              name: minio-root-tmp
+              key: user
+        - name: MINIO_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: minio-root-tmp
+              key: password
+      restartPolicy: OnFailure
+  backoffLimit: 3
+
+---
+# Job to create ant-fileserver user and apply policy
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: setup-ant-fileserver-user
+  namespace: minio
+spec:
+  template:
+    spec:
+      containers:
+      - name: mc-client
+        image: minio/mc:latest
+        command:
+        - /bin/sh
+        - -c
+        - |
+          # Configure mc alias
+          mc alias set local http://minio.minio.svc.cluster.local:9000 $MINIO_ROOT_USER $MINIO_ROOT_PASSWORD
+          
+          # Create user if it doesn't exist
+          if ! mc admin user info local $ANT_ACCESS_KEY; then
+            mc admin user add local $ANT_ACCESS_KEY $ANT_SECRET_KEY
+            echo "Created ant-fileserver user"
+          else
+            echo "Ant-fileserver user already exists"
+          fi
+          
+          # Create policy from configmap
+          mc admin policy create local ant-fileserver-policy /etc/policy/ant-fileserver.json
+          
+          # Attach policy to user
+          mc admin policy attach local ant-fileserver-policy --user $ANT_ACCESS_KEY
+          
+          echo "User setup completed"
+        env:
+        - name: MINIO_ROOT_USER
+          valueFrom:
+            secretKeyRef:
+              name: minio-root-tmp
+              key: user
+        - name: MINIO_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: minio-root-tmp
+              key: password
+        - name: ANT_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: ant-fileserver-prod-creds
+              key: accessKey
+        - name: ANT_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: ant-fileserver-prod-creds
+              key: secretKey
+        volumeMounts:
+        - name: policy-config
+          mountPath: /etc/policy
+          readOnly: true
+      volumes:
+      - name: policy-config
+        configMap:
+          name: iam-ant-fileserver-policy
+      restartPolicy: OnFailure
+  backoffLimit: 3
