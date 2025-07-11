@@ -14,10 +14,7 @@ from urllib.parse import urlparse
 
 import pytest
 
-from app.errors import (
-    ChecksumMismatchError,
-    DuplicateVersionError,
-)
+from app.errors import ChecksumMismatchError, DuplicateVersionError
 from app.models import FirmwareMetaData
 
 

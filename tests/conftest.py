@@ -19,10 +19,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 # ruff: noqa: E402  ── imports below rely on sys.path tweak above
 import app  # noqa: E402
 from app import create_app  # noqa: E402
-from app.blueprints.firmware.service import (  # noqa: E402
-    FirmwareMetaData,
-    FirmwareService,
-)
+from app.blueprints.firmware.service import FirmwareMetaData  # noqa: E402
+from app.blueprints.firmware.service import FirmwareService
 
 _BUCKET = "firmware"
 

@@ -104,10 +104,7 @@ run_all_checks() {
     log "Phase 2: Static Analysis"
     echo "------------------------"
     
-    # Check for common issues
-    if ! run_check "Import Sorting" "python -c \"import subprocess; subprocess.run(['python', '-m', 'isort', '--check-only', 'app/', 'tests/'], check=True)\"" "true"; then
-        warning "Import sorting check failed (isort not installed)"
-    fi
+    # Import sorting is handled by ruff, no separate check needed
     
     # 3. Configuration Validation
     echo
@@ -230,8 +227,8 @@ main() {
     log "Ant Fileserver Comprehensive Test Runner"
     log "========================================"
     
-    # Change to script directory
-    cd "$(dirname "${BASH_SOURCE[0]}")"
+    # Change to project root directory (two levels up from dev/claude/)
+    cd "$(dirname "${BASH_SOURCE[0]}")/../.."
     
     # Activate virtual environment and install dependencies
     activate_venv

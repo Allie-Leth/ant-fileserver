@@ -15,11 +15,7 @@ import semver
 from botocore.config import Config
 from botocore.exceptions import ClientError
 
-from app.errors import (
-    ChecksumMismatchError,
-    DuplicateVersionError,
-    StorageError,
-)
+from app.errors import ChecksumMismatchError, DuplicateVersionError, StorageError
 from app.models import FirmwareMetaData
 
 logger = logging.getLogger(__name__)
