@@ -104,10 +104,7 @@ run_all_checks() {
     log "Phase 2: Static Analysis"
     echo "------------------------"
     
-    # Check for common issues
-    if ! run_check "Import Sorting" "python -c \"import subprocess; subprocess.run(['python', '-m', 'isort', '--check-only', 'app/', 'tests/'], check=True)\"" "true"; then
-        warning "Import sorting check failed (isort not installed)"
-    fi
+    # Import sorting is handled by ruff, no separate check needed
     
     # 3. Configuration Validation
     echo
