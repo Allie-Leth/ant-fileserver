@@ -189,10 +189,26 @@ pytest tests/ --cov=app --cov-report=html
 
 # Code quality checks
 ruff check app/ tests/
-black --check app/ tests/
+ruff format --check app/ tests/
 
 # Run development server
 python -m flask run --debug
+```
+
+### GitHub Actions CI/CD
+```bash
+# Check workflow status
+gh workflow list
+gh run list --workflow=ci.yml
+
+# View specific workflow run
+gh run view <run-id> --log
+
+# Trigger workflow manually (if configured)
+gh workflow run ci.yml
+
+# Check container registry
+gh api /user/packages?package_type=container
 ```
 
 ### Production Monitoring

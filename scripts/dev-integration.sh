@@ -22,7 +22,7 @@ until curl -s -o /dev/null http://localhost:19000/minio/health/ready; do
 done
 echo " ✅"
 
-# Export the same variables your GitLab job uses
+# Export the same variables your CI pipeline uses
 export STORAGE_ENDPOINT="http://localhost:19000"
 export STORAGE_BUCKET="firmware"
 export STORAGE_ACCESS_KEY_ID="minioadmin"
