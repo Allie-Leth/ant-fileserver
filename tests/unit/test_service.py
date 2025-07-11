@@ -12,11 +12,7 @@ import pytest
 from botocore.exceptions import ClientError
 
 from app.blueprints.firmware.service import FirmwareService
-from app.errors import (
-    ChecksumMismatchError,
-    DuplicateVersionError,
-    StorageError,
-)
+from app.errors import ChecksumMismatchError, DuplicateVersionError, StorageError
 
 
 # Helper: base64 encode a bytes object
@@ -65,7 +61,12 @@ class FakeS3:
 
     # upload_firmware
     def put_object(
-        self, Bucket=None, Key=None, Body=None, ContentType=None, **_  # noqa: ARG002
+        self,
+        Bucket=None,  # noqa: ARG002
+        Key=None,
+        Body=None,
+        ContentType=None,  # noqa: ARG002
+        **_,  # noqa: ARG002
     ):
         """Store the raw Body under the given Key in memory."""
         self.objects[Key] = Body

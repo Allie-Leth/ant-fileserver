@@ -8,10 +8,7 @@ Covers:
 import pytest
 from marshmallow import ValidationError
 
-from app.blueprints.firmware.schema import (
-    LatestFirmwareQuerySchema,
-    validate_semver,
-)
+from app.blueprints.firmware.schema import LatestFirmwareQuerySchema, validate_semver
 
 
 def test_validate_semver_bad():

@@ -5,8 +5,8 @@ bases:
   - ../../base
 images:
   - name: IMAGE_PLACEHOLDER
-    newName: $CI_REGISTRY_IMAGE
-    newTag: $CI_COMMIT_SHA
+    newName: ghcr.io/allie-leth/ant-fileserver
+    newTag: latest
 configMapGenerator:
   - name: ant-fileserver-config
     literals:
