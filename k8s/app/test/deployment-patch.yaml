@@ -1,0 +1,14 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ant-fileserver
+spec:
+  template:
+    spec:
+      containers:
+      - name: ant-fileserver
+        # Override command for testing with Python image
+        command: ["python", "-m", "http.server", "8000"]
+        # Remove probes for simple test
+        livenessProbe: null
+        readinessProbe: null
