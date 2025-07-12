@@ -11,7 +11,7 @@ health_bp = Blueprint("health", __name__)
 @health_bp.route("/health", methods=["GET"])
 def health():
     """Liveness probe endpoint.
-    
+
     Returns 200 if the application is running.
     Used by Kubernetes to determine if the pod should be restarted.
     """
@@ -21,7 +21,7 @@ def health():
 @health_bp.route("/ready", methods=["GET"])
 def ready():
     """Readiness probe endpoint.
-    
+
     Returns 200 if the application is ready to receive traffic.
     In the future, this could check MinIO connectivity.
     """
@@ -30,5 +30,5 @@ def ready():
     # - MinIO connectivity
     # - Database if used
     # - Other critical dependencies
-    
+
     return jsonify({"status": "ready"}), 200
