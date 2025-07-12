@@ -1,0 +1,50 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ant-fileserver
+  labels:
+    app: ant-fileserver
+    app.kubernetes.io/name: ant-fileserver
+    app.kubernetes.io/component: api
+    app.kubernetes.io/part-of: ant-firmware
+spec:
+  podSelector:
+    matchLabels:
+      app: ant-fileserver
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    # Allow traffic from ingress-nginx
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    # Allow traffic from same namespace (for debugging/testing)
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 8000
+  egress:
+  # Allow DNS resolution
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53
+  # Allow MinIO access
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: minio
+    ports:
+    - protocol: TCP
+      port: 9000
+  # Allow HTTPS for external APIs (if needed in future)
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 443
