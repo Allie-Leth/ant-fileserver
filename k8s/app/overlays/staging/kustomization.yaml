@@ -1,28 +1,32 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-namespace: ant-prod
+namespace: ant-staging
 
 resources:
   - ../../base
   - hpa.yaml
   - pdb.yaml
   - ingress.yaml
+  - servicemonitor.yaml
 
 patches:
   - path: deployment-patch.yaml
+
 images:
   - name: ant-fileserver
     newName: ghcr.io/allie-leth/ant-fileserver
-    newTag: latest
+    newTag: staging
+
 configMapGenerator:
   - name: ant-fileserver-config
     behavior: merge
     literals:
       - LOG_LEVEL=info
       - FLASK_ENV=production
-      - STORAGE_ENDPOINT=https://minio.example.com
-      - STORAGE_BUCKET=ant-fileserver-prod
+      - STORAGE_ENDPOINT=https://minio-staging.example.com
+      - STORAGE_BUCKET=ant-fileserver-staging
+
 replicas:
   - name: ant-fileserver
     count: 2

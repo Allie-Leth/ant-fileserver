@@ -1,0 +1,27 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: ant-fileserver
+  labels:
+    app: ant-fileserver
+    app.kubernetes.io/name: ant-fileserver
+    app.kubernetes.io/component: api
+    app.kubernetes.io/part-of: ant-firmware
+    # Label that Prometheus uses to discover ServiceMonitors
+    prometheus: kube-prometheus
+spec:
+  selector:
+    matchLabels:
+      app: ant-fileserver
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s
+    scheme: http
+    # Optional: Add relabeling to include additional metadata
+    relabelings:
+    - sourceLabels: [__meta_kubernetes_pod_name]
+      targetLabel: pod
+    - sourceLabels: [__meta_kubernetes_pod_node_name]
+      targetLabel: node

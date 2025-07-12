@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ant-fileserver
+spec:
+  template:
+    spec:
+      # Anti-affinity to spread pods across nodes
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - ant-fileserver
+              topologyKey: kubernetes.io/hostname
+      containers:
+      - name: ant-fileserver
+        # Increase resources for staging
+        resources:
+          requests:
+            cpu: 200m
+            memory: 256Mi
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+        # Add Prometheus metrics annotations
+        env:
+        - name: PROMETHEUS_METRICS_ENABLED
+          value: "true"
+        ports:
+        - name: metrics
+          containerPort: 9090
+          protocol: TCP

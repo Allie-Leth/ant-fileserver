@@ -1,0 +1,50 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ant-fileserver
+  labels:
+    app: ant-fileserver
+    app.kubernetes.io/name: ant-fileserver
+    app.kubernetes.io/component: api
+    app.kubernetes.io/part-of: ant-firmware
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ant-fileserver
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300  # 5 minutes
+      policies:
+      - type: Percent
+        value: 50  # Scale down by max 50% of current replicas
+        periodSeconds: 60
+      - type: Pods
+        value: 1   # But at least 1 pod at a time
+        periodSeconds: 60
+      selectPolicy: Min  # Choose the policy that scales down slower
+    scaleUp:
+      stabilizationWindowSeconds: 60   # 1 minute
+      policies:
+      - type: Percent
+        value: 100  # Double the pods if needed
+        periodSeconds: 60
+      - type: Pods
+        value: 2    # But max 2 pods at a time
+        periodSeconds: 60
+      selectPolicy: Max  # Choose the policy that scales up faster
