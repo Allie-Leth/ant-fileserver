@@ -2,10 +2,19 @@ apiVersion: v1
 kind: Service
 metadata:
   name: ant-fileserver
+  labels:
+    app: ant-fileserver
+    app.kubernetes.io/name: ant-fileserver
+    app.kubernetes.io/component: api
+    app.kubernetes.io/part-of: ant-firmware
 spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+    protocol: TCP
   selector:
     app: ant-fileserver
-  ports:
-    - port: 80
-      targetPort: 8000
-  type: ClusterIP
+    app.kubernetes.io/name: ant-fileserver
+  sessionAffinity: None

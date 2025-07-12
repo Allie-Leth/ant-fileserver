@@ -2,29 +2,90 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ant-fileserver
+  labels:
+    app: ant-fileserver
+    app.kubernetes.io/name: ant-fileserver
+    app.kubernetes.io/component: api
+    app.kubernetes.io/part-of: ant-firmware
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: ant-fileserver
+      app.kubernetes.io/name: ant-fileserver
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   template:
     metadata:
       labels:
         app: ant-fileserver
+        app.kubernetes.io/name: ant-fileserver
+        app.kubernetes.io/component: api
+        app.kubernetes.io/part-of: ant-firmware
     spec:
+      serviceAccountName: ant-fileserver
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
       containers:
-        - name: ant-fileserver
-          image: IMAGE_PLACEHOLDER
-          ports:
-            - containerPort: 8000
-          readinessProbe:
-            httpGet:
-              path: /healthz
-              port: 8000
-            initialDelaySeconds: 5
-            periodSeconds: 10
-          envFrom:
-            - configMapRef:
-              name: ant-minio-config
-            - secretRef:
-              name: ant-minio-app-creds
+      - name: ant-fileserver
+        image: ant-fileserver:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 8000
+          protocol: TCP
+        env:
+        - name: FLASK_ENV
+          value: production
+        - name: PORT
+          value: "8000"
+        envFrom:
+        - configMapRef:
+            name: ant-fileserver-config
+        - secretRef:
+            name: ant-fileserver-secrets
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+            - ALL
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}
