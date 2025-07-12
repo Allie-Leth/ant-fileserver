@@ -21,7 +21,7 @@ convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
-"tests/**/*" = ["D"]
+"tests/**/*" = ["D", "ARG002"]
 
 [tool.black]
 line-length = 88
