@@ -133,16 +133,16 @@ main() {
     # Check if we have the Go version of yq (v4)
     if command -v yq &> /dev/null && yq --version 2>&1 | grep -q "version v4"; then
         run_test "Security context - non-root" \
-            "kubectl kustomize k8s/app/base/ | PATH=$HOME/.local/bin:$PATH yq e '. | select(.kind == \"Deployment\") | .spec.template.spec.securityContext.runAsNonRoot' - | grep -q true"
+            "kubectl kustomize k8s/app/base/ | yq e '. | select(.kind == \"Deployment\") | .spec.template.spec.securityContext.runAsNonRoot' - | grep -q true"
         
         run_test "Security context - read-only filesystem" \
-            "kubectl kustomize k8s/app/base/ | PATH=$HOME/.local/bin:$PATH yq e '. | select(.kind == "Deployment") | .spec.template.spec.containers[0].securityContext.readOnlyRootFilesystem' - | grep -q true"
+            "kubectl kustomize k8s/app/base/ | yq e '. | select(.kind == \"Deployment\") | .spec.template.spec.containers[0].securityContext.readOnlyRootFilesystem' - | grep -q true"
         
         run_test "Security context - no privilege escalation" \
-            "kubectl kustomize k8s/app/base/ | PATH=$HOME/.local/bin:$PATH yq e '. | select(.kind == "Deployment") | .spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation' - | grep -q false"
+            "kubectl kustomize k8s/app/base/ | yq e '. | select(.kind == \"Deployment\") | .spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation' - | grep -q false"
         
         run_test "Security context - capabilities dropped" \
-            "kubectl kustomize k8s/app/base/ | PATH=$HOME/.local/bin:$PATH yq e '. | select(.kind == "Deployment") | .spec.template.spec.containers[0].securityContext.capabilities.drop[]' - | grep -q ALL"
+            "kubectl kustomize k8s/app/base/ | yq e '. | select(.kind == \"Deployment\") | .spec.template.spec.containers[0].securityContext.capabilities.drop[]' - | grep -q ALL"
     else
         warning "Skipping detailed security context tests (yq not installed)"
     fi
@@ -181,10 +181,10 @@ main() {
     if command -v yq &> /dev/null && yq --version 2>&1 | grep -q "version v4"; then
         # Check for restricted profile compliance
         run_test "Pod Security Standards - seccomp profile" \
-            "kubectl kustomize k8s/app/base/ | PATH=$HOME/.local/bin:$PATH yq e '. | select(.kind == "Deployment") | .spec.template.spec.containers[0].securityContext.seccompProfile.type' - | grep -q RuntimeDefault"
+            "kubectl kustomize k8s/app/base/ | yq e '. | select(.kind == \"Deployment\") | .spec.template.spec.containers[0].securityContext.seccompProfile.type' - | grep -q RuntimeDefault"
         
         run_test "Pod Security Standards - user ID >= 1000" \
-            "kubectl kustomize k8s/app/base/ | PATH=$HOME/.local/bin:$PATH yq e '. | select(.kind == "Deployment") | .spec.template.spec.securityContext.runAsUser' - | awk '{if(\$1 >= 1000) exit 0; else exit 1}'"
+            "kubectl kustomize k8s/app/base/ | yq e '. | select(.kind == \"Deployment\") | .spec.template.spec.securityContext.runAsUser' - | awk '{if(\$1 >= 1000) exit 0; else exit 1}'"
     fi
     
     # Test 12: Best practices
@@ -202,10 +202,10 @@ main() {
     # Test 13: Resource constraints validation
     if command -v yq &> /dev/null && yq --version 2>&1 | grep -q "version v4"; then
         run_test "CPU request within limits" \
-            "kubectl kustomize k8s/app/base/ | PATH=$HOME/.local/bin:$PATH yq e '. | select(.kind == "Deployment") | .spec.template.spec.containers[0].resources.requests.cpu' - | grep -E '^[0-9]+m$|^[0-9.]+$'"
+            "kubectl kustomize k8s/app/base/ | yq e '. | select(.kind == \"Deployment\") | .spec.template.spec.containers[0].resources.requests.cpu' - | grep -E '^[0-9]+m$|^[0-9.]+$'"
         
         run_test "Memory request within limits" \
-            "kubectl kustomize k8s/app/base/ | yq e '. | select(.kind == "Deployment") | .spec.template.spec.containers[0].resources.requests.memory' - | grep -E '^[0-9]+[MG]i$'"
+            "kubectl kustomize k8s/app/base/ | yq e '. | select(.kind == \"Deployment\") | .spec.template.spec.containers[0].resources.requests.memory' - | grep -E '^[0-9]+[MG]i$'"
     fi
     
     # Summary
