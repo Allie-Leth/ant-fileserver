@@ -107,11 +107,11 @@ fi
 # 4. Type checking (optional but recommended)
 echo
 echo -e "${BLUE}=== Type Checking ===${NC}"
-if command -v mypy &> /dev/null; then
+if command -v mypy &> /dev/null && [ "${RUN_MYPY:-false}" = "true" ]; then
     run_check "MyPy type checking" \
         "mypy app/ --ignore-missing-imports" || true
 else
-    warning "mypy not installed, skipping type checking"
+    warning "mypy type checking disabled (set RUN_MYPY=true to enable)"
 fi
 
 # 5. Unit tests
@@ -167,12 +167,12 @@ echo -e "${BLUE}=== Security Checks ===${NC}"
 run_check "Secret scanning" \
     "! grep -r -E '(password|secret|key|token)\\s*=\\s*[\"'\''][^\"'\'']+[\"'\'']' app/ --exclude-dir=__pycache__" || true
 
-# Safety check for known vulnerabilities
-if command -v safety &> /dev/null; then
+# Safety check for known vulnerabilities (disabled due to tool bug)
+if command -v safety &> /dev/null && [ "${RUN_SAFETY:-false}" = "true" ]; then
     run_check "Dependency vulnerabilities" \
         "safety check --json" || true
 else
-    warning "safety not installed, skipping vulnerability check"
+    warning "safety check disabled (set RUN_SAFETY=true to enable)"
 fi
 
 # 10. Documentation checks

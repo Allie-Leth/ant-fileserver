@@ -223,11 +223,12 @@ class FirmwareService:
         key = f"{self.prefix}/{project}/{device_type}/{version}/firmware.bin"
 
         try:
-            return self.s3.generate_presigned_url(
+            url = self.s3.generate_presigned_url(
                 "get_object",
                 Params={"Bucket": self.bucket, "Key": key},
                 ExpiresIn=expires_in,
             )
+            return str(url)
         except ClientError as e:
             raise StorageError(
                 f"Failed to generate presigned URL for {key}: {e}"
