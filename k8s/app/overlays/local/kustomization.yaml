@@ -1,26 +1,26 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-namespace: ant
+namespace: ant-local
 
 resources:
   - ../../base
-  - ingress.yaml
 
 images:
   - name: ant-fileserver
-    newName: ghcr.io/allie-leth/ant-fileserver
-    newTag: dev
+    newName: ant-fileserver
+    newTag: test
 
 configMapGenerator:
   - name: ant-fileserver-config
     behavior: merge
     literals:
-      - LOG_LEVEL=info
+      - LOG_LEVEL=debug
       - FLASK_ENV=development
-      - STORAGE_ENDPOINT=https://minio-dev.example.com
+      - STORAGE_ENDPOINT=http://minio.minio.svc.cluster.local:9000
       - STORAGE_BUCKET=ant-fileserver-dev
+      - STORAGE_REGION=us-east-1
 
-replicas:
-  - name: ant-fileserver
-    count: 2
+# Remove NetworkPolicy for easier local testing
+patches:
+  - path: delete-networkpolicy.yaml

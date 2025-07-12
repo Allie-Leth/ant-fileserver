@@ -27,3 +27,4 @@ coverage.*
 # testing
 .pytest_cache/
 venv/
+k8s/app/overlays/local/secrets.env
