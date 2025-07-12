@@ -90,9 +90,7 @@ def fake_service(monkeypatch):
                 for v in self._store.get((project, device_type), [])
             ]
 
-        def get_latest(
-            self, project, device_type, current_version=None
-        ):  # noqa: ARG002
+        def get_latest(self, project, device_type, current_version=None):  # noqa: ARG002
             """Return newest FirmwareMetaData (ignores *current_version* in fake)."""
             return self.list_firmware(project, device_type)[-1]
 
