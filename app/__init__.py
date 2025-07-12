@@ -16,6 +16,7 @@ from flask import Flask
 from app.blueprints.auth.routes import auth_bp
 from app.blueprints.firmware.routes import firmware_bp
 from app.blueprints.firmware.service import FirmwareService
+from app.blueprints.health import health_bp
 
 from .config import config_map
 from .errors import register_error_handlers
@@ -72,6 +73,7 @@ def create_app(config_name: str = "default") -> Flask:
     )
 
     # ── Register Blueprints ───────────────────────────────────────────────
+    app.register_blueprint(health_bp)  # Health checks at root level
     app.register_blueprint(auth_bp, url_prefix="/api/v1/auth", defaults={"svc": svc})
     app.register_blueprint(
         firmware_bp, url_prefix="/api/v1/firmware", defaults={"svc": svc}
