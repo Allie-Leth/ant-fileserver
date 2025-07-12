@@ -1,0 +1,74 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      image_tag:
+        description: 'Image tag to deploy'
+        required: true
+        default: 'latest'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install kubectl
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/
+      
+      - name: Configure kubectl
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > ~/.kube/config
+      
+      - name: Update image tag
+        run: |
+          cd k8s/app/overlays/${{ inputs.environment == 'production' && 'prod' || inputs.environment }}
+          kubectl kustomize . | \
+            kubectl set image -f - \
+            ant-fileserver=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.image_tag }} \
+            --local -o yaml > temp.yaml
+          mv temp.yaml deployment.yaml
+      
+      - name: Deploy to ${{ inputs.environment }}
+        run: |
+          kubectl apply -k k8s/app/overlays/${{ inputs.environment == 'production' && 'prod' || inputs.environment }}
+      
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/ant-fileserver \
+            -n ant-${{ inputs.environment == 'production' && 'prod' || inputs.environment }} \
+            --timeout=10m
+      
+      - name: Verify deployment
+        run: |
+          kubectl get all,hpa,pdb,ingress \
+            -n ant-${{ inputs.environment == 'production' && 'prod' || inputs.environment }}
+      
+      - name: Run smoke tests
+        run: |
+          NAMESPACE=ant-${{ inputs.environment == 'production' && 'prod' || inputs.environment }}
+          
+          # Test health endpoint
+          kubectl exec -n $NAMESPACE deployment/ant-fileserver -- \
+            curl -f http://localhost:8000/health
+          
+          # Test ready endpoint
+          kubectl exec -n $NAMESPACE deployment/ant-fileserver -- \
+            curl -f http://localhost:8000/ready
