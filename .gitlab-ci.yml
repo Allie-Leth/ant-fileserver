@@ -1,0 +1,404 @@
+########################################
+#      GLOBAL CONFIG & VARIABLES
+########################################
+# NOTE: Deployments are now handled by Flux GitOps
+# See: https://gitlab.scopecreep.productions/gitops/flux
+# This pipeline only builds, tests, and pushes images
+#
+# IMPORTANT: Registry Push/Pull Strategy
+# - PUSH: Uses internal cluster DNS (gitlab-registry.gitlab.svc.cluster.local:5000)
+#   to avoid Cloudflare tunnel upload size limits
+# - PULL: Uses external URL (gitlab-registry.scopecreep.productions) for reliability
+
+workflow:
+  auto_cancel:
+    on_new_commit: interruptible  # Cancel running jobs when new commit pushed
+    on_job_failure: all           # Cancel all pending/running jobs if any job fails
+  rules:
+    # Run pipeline for merge requests
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    # Skip branch pipelines if MR is open (prevents duplicates)
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    # Run pipeline for regular branch pushes
+    - if: $CI_COMMIT_BRANCH
+
+stages:
+  - lint
+  - test
+  - security
+  - build
+  - registry
+
+variables:
+  # Registry configuration
+  INTERNAL_REGISTRY: gitlab-registry.gitlab.svc.cluster.local:5000
+  INTERNAL_IMAGE: $INTERNAL_REGISTRY/$CI_PROJECT_PATH
+  EXTERNAL_REGISTRY: gitlab-registry.scopecreep.productions
+  EXTERNAL_IMAGE: $EXTERNAL_REGISTRY/$CI_PROJECT_PATH
+  IMAGE_TAG: $CI_COMMIT_SHORT_SHA
+
+default:
+  image: python:3.12-slim
+  interruptible: true  # Jobs can be cancelled on failure or new commit
+
+.lint_base: &lint_base
+  image: python:3.12-slim
+  before_script:
+    - pip install --no-cache-dir ruff
+
+# Full dev dependencies for pytest & moto
+.test_base: &test_base
+  before_script:
+    - pip install --no-cache-dir -r requirements.txt
+    - pip install --no-cache-dir -r requirements-dev.txt
+  artifacts:
+    expire_in: 1 week
+    when: always
+
+
+########################################
+#     TEMPLATE FOR PRODUCTION JOBS
+########################################
+.default_prod: &prod
+  tags: ["k3s", "prod"]
+  image: quay.io/containers/aio:v2025.07.02
+  variables:
+    BUILDAH_ISOLATION: chroot
+    STORAGE_DRIVER: vfs
+
+########################################
+#            LINT STAGE
+########################################
+lint:check:
+  <<: *lint_base
+  stage: lint
+  needs: []  # Start immediately
+  script:
+    - ruff check .
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+    - if: $CI_COMMIT_BRANCH == "dev"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+lint:format:
+  <<: *lint_base
+  stage: lint
+  needs: []  # Start immediately
+  script:
+    - ruff format --check .
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+    - if: $CI_COMMIT_BRANCH == "dev"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+########################################
+#            TEST STAGE
+########################################
+test:unit:
+  <<: *test_base
+  stage: test
+  needs: []  # Start immediately, run in parallel with lint
+  variables:
+    PYTHONPATH: "$CI_PROJECT_DIR"
+  script:
+    - pytest tests/unit --cov=app --cov-report=term-missing
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+    - if: $CI_COMMIT_BRANCH == "dev"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+test:api:
+  <<: *test_base
+  stage: test
+  needs: []  # Start immediately, run in parallel with lint
+  variables:
+    PYTHONPATH: "$CI_PROJECT_DIR"
+    STORAGE_ENDPOINT: http://dummy
+    STORAGE_BUCKET: firmware
+    STORAGE_ACCESS_KEY_ID: dummy
+    STORAGE_SECRET_ACCESS_KEY: dummy
+    STORAGE_REGION: us-east-1
+  script:
+    - pytest tests/api
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+    - if: $CI_COMMIT_BRANCH == "dev"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+test:integration:
+  <<: *test_base
+  stage: test
+  needs: []  # Start immediately, run in parallel with other tests
+  services:
+    - name: minio/minio:latest
+      alias: minio
+      command: ["server","/data","--console-address",":9001"]
+  variables:
+    PYTHONPATH: "$CI_PROJECT_DIR"
+    STORAGE_ENDPOINT: http://minio:9000
+    STORAGE_BUCKET: firmware
+    STORAGE_ACCESS_KEY_ID: minioadmin
+    STORAGE_SECRET_ACCESS_KEY: minioadmin
+    STORAGE_REGION: us-east-1
+  script:
+    - pytest tests/integration -m integration
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+    - if: $CI_COMMIT_BRANCH == "dev"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+########################################
+#          SECURITY STAGE
+########################################
+security:dependencies:
+  stage: security
+  needs: []  # Start immediately
+  image: python:3.12-slim
+  before_script:
+    - pip install --no-cache-dir pip-audit
+  script:
+    - pip-audit -r requirements.txt
+  allow_failure: true
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+    - if: $CI_COMMIT_BRANCH == "dev"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# SAST: Static Application Security Testing with Bandit
+security:sast:
+  stage: security
+  needs: []  # Start immediately
+  image: python:3.12-slim
+  before_script:
+    - pip install --no-cache-dir bandit
+  script:
+    - echo "Running Bandit SAST scan..."
+    - bandit -r app/ -f json -o bandit-report.json || true
+    - bandit -r app/ -f txt
+    # Fail on high severity issues
+    - bandit -r app/ -ll -ii
+  artifacts:
+    paths:
+      - bandit-report.json
+    expire_in: 1 week
+    when: always
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+    - if: $CI_COMMIT_BRANCH == "dev"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# SAST: Semgrep for advanced pattern matching
+security:semgrep:
+  stage: security
+  needs: []  # Start immediately
+  image: returntocorp/semgrep:latest
+  before_script: []  # Override default
+  script:
+    - echo "Running Semgrep SAST scan..."
+    - semgrep ci --config auto --config p/python --config p/flask --config p/jwt --json -o semgrep-report.json || true
+    - semgrep ci --config auto --config p/python --config p/flask --config p/jwt
+  artifacts:
+    paths:
+      - semgrep-report.json
+    expire_in: 1 week
+    when: always
+  allow_failure: true
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+    - if: $CI_COMMIT_BRANCH == "dev"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+security:secrets:
+  stage: security
+  needs: []  # Start immediately
+  image: trufflesecurity/trufflehog:latest
+  before_script: []  # Override default before_script
+  script:
+    - trufflehog filesystem . --only-verified
+  allow_failure: true
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+    - if: $CI_COMMIT_BRANCH == "dev"
+
+########################################
+#        BUILD STAGE
+########################################
+# Build and test Docker image for MRs (full test including push/pull)
+build:docker:test:
+  extends: .default_prod
+  stage: build
+  needs:
+    - lint:check
+    - lint:format
+    - test:unit
+    - test:api
+    - test:integration
+  script:
+    # Build image locally
+    - podman build --pull -t "localhost/ant-fileserver:mr-$CI_MERGE_REQUEST_IID" .
+    - echo "Docker build successful!"
+    # Login and push to internal registry with MR-specific tag
+    - echo "$CI_REGISTRY_PASSWORD" | podman login --tls-verify=false -u "$CI_REGISTRY_USER" --password-stdin $INTERNAL_REGISTRY
+    - podman tag "localhost/ant-fileserver:mr-$CI_MERGE_REQUEST_IID" "$INTERNAL_IMAGE:mr-test-$CI_MERGE_REQUEST_IID"
+    - podman push --tls-verify=false "$INTERNAL_IMAGE:mr-test-$CI_MERGE_REQUEST_IID"
+    - echo "Push to internal registry successful!"
+    # Test that the image actually runs
+    - |
+      podman run -d --name test-container -p 8000:8000 \
+        -e STORAGE_ENDPOINT=http://dummy \
+        -e STORAGE_BUCKET=firmware \
+        -e STORAGE_ACCESS_KEY_ID=dummy \
+        -e STORAGE_SECRET_ACCESS_KEY=dummy \
+        -e STORAGE_REGION=us-east-1 \
+        -e PUBLIC_BASE_URL=http://localhost:8000 \
+        -e JWT_SECRET_KEY=test-secret \
+        -e API_KEY_ROLES='{"test-key":["admin"]}' \
+        "localhost/ant-fileserver:mr-$CI_MERGE_REQUEST_IID"
+    - sleep 10
+    - curl -f http://localhost:8000/health || (echo "Health check failed!" && podman logs test-container && exit 1)
+    - curl -f http://localhost:8000/api/v1/ops/health || (echo "API check failed!" && podman logs test-container && exit 1)
+    - echo "Container health check passed!"
+    - podman stop test-container
+    - podman rm test-container
+    - echo "Docker build, push, and runtime test completed successfully for MR!"
+  after_script:
+    - podman stop test-container || true
+    - podman rm test-container || true
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+
+# Full Docker build with registry push for dev/main branches
+build:docker:
+  extends: .default_prod
+  stage: build
+  needs:
+    - lint:check
+    - lint:format
+    - test:unit
+    - test:api
+    - test:integration
+  script:
+    # Build image
+    - podman build --pull -t "localhost/ant-fileserver:$IMAGE_TAG" .
+    - echo "Image built successfully"
+    # Login to internal registry
+    - echo "$CI_REGISTRY_PASSWORD" | podman login --tls-verify=false -u "$CI_REGISTRY_USER" --password-stdin $INTERNAL_REGISTRY
+    # Tag for internal registry
+    - podman tag "localhost/ant-fileserver:$IMAGE_TAG" "$INTERNAL_IMAGE:$IMAGE_TAG"
+    - podman tag "localhost/ant-fileserver:$IMAGE_TAG" "$INTERNAL_IMAGE:$CI_COMMIT_REF_SLUG"
+    # Create timestamped tag for Flux image automation (main branch only)
+    # Format: main-<unix_timestamp>-<short_sha> for reliable ordering
+    - |
+      if [ "$CI_COMMIT_BRANCH" = "main" ]; then
+        FLUX_TAG="main-$(date +%s)-${CI_COMMIT_SHORT_SHA}"
+        podman tag "localhost/ant-fileserver:$IMAGE_TAG" "$INTERNAL_IMAGE:$FLUX_TAG"
+        echo "Created Flux automation tag: $FLUX_TAG"
+      fi
+    # Push to internal registry (fast, avoids Cloudflare tunnel limits)
+    - podman push --tls-verify=false "$INTERNAL_IMAGE:$IMAGE_TAG"
+    - podman push --tls-verify=false "$INTERNAL_IMAGE:$CI_COMMIT_REF_SLUG"
+    - test "$CI_COMMIT_BRANCH" = "main" && podman push --tls-verify=false "$INTERNAL_IMAGE:$FLUX_TAG" || true
+    - echo "Image pushed to internal registry $INTERNAL_IMAGE:$IMAGE_TAG"
+    # Note: Flux image automation will detect the new main-* tag and update the deployment
+  rules:
+    - if: $CI_COMMIT_BRANCH == "dev"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+########################################
+#        REGISTRY STAGE
+########################################
+# Verify the pushed image can be pulled and runs
+registry:verify:
+  extends: .default_prod
+  stage: registry
+  needs: ['build:docker']
+  script:
+    - echo "Verifying image is accessible..."
+    # Login to internal registry
+    - echo "$CI_REGISTRY_PASSWORD" | podman login --tls-verify=false -u "$CI_REGISTRY_USER" --password-stdin $INTERNAL_REGISTRY
+    # Pull from internal registry
+    - podman pull --tls-verify=false "$INTERNAL_IMAGE:$IMAGE_TAG"
+    # Test that the image runs and responds to health check
+    - echo "Starting container to verify it runs..."
+    - |
+      podman run -d --name test-container -p 8000:8000 \
+        -e STORAGE_ENDPOINT=http://dummy \
+        -e STORAGE_BUCKET=firmware \
+        -e STORAGE_ACCESS_KEY_ID=dummy \
+        -e STORAGE_SECRET_ACCESS_KEY=dummy \
+        -e STORAGE_REGION=us-east-1 \
+        -e PUBLIC_BASE_URL=http://localhost:8000 \
+        -e JWT_SECRET_KEY=test-secret \
+        -e API_KEY_ROLES='{"test-key":["admin"]}' \
+        "$INTERNAL_IMAGE:$IMAGE_TAG"
+    - sleep 10
+    - echo "Testing health endpoint..."
+    - curl -f http://localhost:8000/health || (echo "Health check failed!" && podman logs test-container && exit 1)
+    - curl -f http://localhost:8000/api/v1/ops/health || (echo "API check failed!" && podman logs test-container && exit 1)
+    - echo "Image verification successful!"
+    - podman stop test-container
+  after_script:
+    - podman stop test-container || true
+    - podman rm test-container || true
+  rules:
+    - if: $CI_COMMIT_BRANCH == "dev"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# Security scan of container image
+registry:scan:
+  stage: registry
+  image: aquasec/trivy:latest
+  needs: ['build:docker']
+  retry:
+    max: 2
+    when:
+      - unknown_failure
+      - script_failure
+  before_script:
+    # Use GitHub Container Registry mirror for better reliability
+    - export TRIVY_DB_REPOSITORY="ghcr.io/aquasecurity/trivy-db"
+    # Trivy needs credentials to pull from the internal registry
+    - export TRIVY_USERNAME="$CI_REGISTRY_USER"
+    - export TRIVY_PASSWORD="$CI_REGISTRY_PASSWORD"
+    - export TRIVY_AUTH_URL="$INTERNAL_REGISTRY"
+    # Allow insecure registry
+    - export TRIVY_INSECURE=true
+  script:
+    - echo "Scanning image for vulnerabilities..."
+    - trivy image --exit-code 0 --no-progress --format table $INTERNAL_IMAGE:$IMAGE_TAG
+    - echo "Checking for HIGH/CRITICAL vulnerabilities..."
+    - trivy image --exit-code 1 --severity HIGH,CRITICAL --no-progress $INTERNAL_IMAGE:$IMAGE_TAG
+  allow_failure: true
+  rules:
+    - if: $CI_COMMIT_BRANCH == "dev"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# Security scan for MR test images
+registry:scan:test:
+  stage: registry
+  image: aquasec/trivy:latest
+  needs: ['build:docker:test']
+  retry:
+    max: 2
+    when:
+      - unknown_failure
+      - script_failure
+  before_script:
+    - export TRIVY_DB_REPOSITORY="ghcr.io/aquasecurity/trivy-db"
+    - export TRIVY_USERNAME="$CI_REGISTRY_USER"
+    - export TRIVY_PASSWORD="$CI_REGISTRY_PASSWORD"
+    - export TRIVY_AUTH_URL="$INTERNAL_REGISTRY"
+    - export TRIVY_INSECURE=true
+  script:
+    - echo "Scanning MR test image for vulnerabilities..."
+    - trivy image --exit-code 0 --no-progress --format table $INTERNAL_IMAGE:mr-test-$CI_MERGE_REQUEST_IID
+    - echo "Checking for HIGH/CRITICAL vulnerabilities..."
+    - trivy image --exit-code 1 --severity HIGH,CRITICAL --no-progress $INTERNAL_IMAGE:mr-test-$CI_MERGE_REQUEST_IID
+  allow_failure: true
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+
+# NOTE: Kubernetes deployment is now handled by Flux GitOps
+# See: https://gitlab.scopecreep.productions/gitops/flux
+# Flux image automation detects new main-* tags and updates deployments automatically

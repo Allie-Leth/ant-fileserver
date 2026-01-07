@@ -1,0 +1,36 @@
+# --- DEV ---
+# Python
+*.py[cod]
+__pycache__/
+*.pyo
+*.pyd
+.Python
+env/
+.venv/
+
+# Claude
+dev/
+docs/
+log/
+logs/
+
+# lint
+ruff.toml
+.ruff_cache/
+
+# VsCode
+.vscode/
+.vscode-test/
+
+# Environment variables
+.env
+.env.secure
+.flaskenv
+
+# Coverage reports
+.coverage
+coverage.*
+
+# testing
+.pytest_cache/
+.hypothesis/
